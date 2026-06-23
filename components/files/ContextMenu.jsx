@@ -1,0 +1,90 @@
+'use client'
+
+import { useEffect, useRef } from 'react'
+import {
+  FolderOpen, Pencil, Copy, Scissors, Clipboard, Link2, Trash2
+} from 'lucide-react'
+import { cn } from '@/lib/utils'
+import { motion } from 'framer-motion'
+
+const Divider = () => <div className="my-0.5 mx-2 h-px bg-[#262626]" />
+
+function MenuItem({ icon: Icon, label, onClick, variant = 'default', disabled }) {
+  return (
+    <button
+      onClick={disabled ? undefined : onClick}
+      disabled={disabled}
+      className={cn(
+        'flex items-center gap-2.5 w-full px-3 py-1.5 text-sm rounded-[6px] transition-colors cursor-pointer',
+        'disabled:opacity-40 disabled:cursor-not-allowed',
+        variant === 'danger'
+          ? 'text-[#ef4444] hover:bg-[#450a0a]'
+          : 'text-[#a3a3a3] hover:text-[#f5f5f5] hover:bg-[#1c1c1c]'
+      )}
+    >
+      {Icon && <Icon size={14} className="shrink-0" />}
+      {label}
+    </button>
+  )
+}
+
+export default function ContextMenu({
+  menu,
+  clipboard,
+  onClose,
+  onOpen,
+  onRename,
+  onCopy,
+  onCut,
+  onPaste,
+  onCopyUrl,
+  onDelete,
+}) {
+  const ref  = useRef(null)
+  const item = menu?.item
+
+  useEffect(() => {
+    if (!menu) return
+    const handle = (e) => {
+      if (ref.current && !ref.current.contains(e.target)) onClose()
+    }
+    setTimeout(() => window.addEventListener('mousedown', handle), 0)
+    return () => window.removeEventListener('mousedown', handle)
+  }, [menu, onClose])
+
+  if (!menu) return null
+
+  // Clamp to viewport
+  const x = Math.min(menu.x, window.innerWidth - 180)
+  const y = Math.min(menu.y, window.innerHeight - 280)
+
+  const isFolder = item?.tag === 'folder'
+  const canPaste = clipboard?.paths?.length > 0
+
+  return (
+    <motion.div
+      ref={ref}
+      initial={{ opacity: 0, scale: 0.95 }}
+      animate={{ opacity: 1, scale: 1 }}
+      transition={{ duration: 0.12 }}
+      style={{ position: 'fixed', left: x, top: y, zIndex: 1000 }}
+      className="w-44 bg-[#161616] border border-[#333333] rounded-[10px] shadow-2xl shadow-black/60 p-1 animate-fadeIn"
+      onClick={e => e.stopPropagation()}
+    >
+      {isFolder && (
+        <MenuItem icon={FolderOpen} label="Open" onClick={() => { onOpen(item); onClose() }} />
+      )}
+      <MenuItem icon={Pencil}    label="Rename"   onClick={() => { onRename(item); onClose() }} />
+      <Divider />
+      <MenuItem icon={Copy}      label="Copy"     onClick={() => { onCopy([item.path]); onClose() }} />
+      <MenuItem icon={Scissors}  label="Cut"      onClick={() => { onCut([item.path]);  onClose() }} />
+      <MenuItem icon={Clipboard} label="Paste"    onClick={() => { onPaste(); onClose() }} disabled={!canPaste} />
+      <Divider />
+      {!isFolder && (
+        <MenuItem icon={Link2} label="Copy URL" onClick={() => { onCopyUrl(item); onClose() }} />
+      )}
+      <Divider />
+      <MenuItem icon={Trash2} label="Delete" onClick={() => { onDelete([item.path]); onClose() }} variant="danger" />
+    </motion.div>
+  )
+}
