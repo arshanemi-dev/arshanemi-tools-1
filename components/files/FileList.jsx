@@ -6,6 +6,7 @@ export default function FileList({
   folders = [],
   files = [],
   selectedItems,
+  selectionOrder,
   cutPaths,
   onSelect,
   onNavigate,
@@ -41,6 +42,7 @@ export default function FileList({
       <div className="flex items-center gap-3 px-3 py-1.5 text-xs text-[#6b7280] border-b border-[#262626] mb-1">
         <div className="w-8 shrink-0" />
         <span className="flex-1">Name</span>
+        <span className="hidden sm:block text-right">Source</span>
         <span className="hidden sm:block w-24 text-right">Modified</span>
         <span className="w-16 text-right">Size</span>
       </div>
@@ -52,6 +54,7 @@ export default function FileList({
           view="list"
           isSelected={selectedItems.has(item.path)}
           isCut={cutPaths?.has(item.path)}
+          selectionIndex={selectionOrder?.get(item.path)}
           onSelect={(e) => onSelect(item, e)}
           onDoubleClick={() => item.tag === 'folder' ? onNavigate(item.path) : null}
           onContextMenu={(e) => onContextMenu(e, item)}

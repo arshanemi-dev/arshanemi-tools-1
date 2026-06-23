@@ -1,12 +1,12 @@
 'use client'
 
 import FileItem from './FileItem'
-import { cn } from '@/lib/utils'
 
 export default function FileGrid({
   folders = [],
   files = [],
   selectedItems,
+  selectionOrder,
   cutPaths,
   onSelect,
   onNavigate,
@@ -19,10 +19,10 @@ export default function FileGrid({
   })
 
   const sortedFiles = [...files].sort((a, b) => {
-    if (sortBy === 'name')  return a.name.localeCompare(b.name)
-    if (sortBy === 'size')  return (b.size ?? 0) - (a.size ?? 0)
-    if (sortBy === 'date')  return new Date(b.modified ?? 0) - new Date(a.modified ?? 0)
-    if (sortBy === 'type')  return a.name.split('.').pop().localeCompare(b.name.split('.').pop())
+    if (sortBy === 'name') return a.name.localeCompare(b.name)
+    if (sortBy === 'size') return (b.size ?? 0) - (a.size ?? 0)
+    if (sortBy === 'date') return new Date(b.modified ?? 0) - new Date(a.modified ?? 0)
+    if (sortBy === 'type') return a.name.split('.').pop().localeCompare(b.name.split('.').pop())
     return 0
   })
 
@@ -32,7 +32,9 @@ export default function FileGrid({
     return (
       <div className="flex flex-col items-center justify-center py-24 text-center">
         <div className="w-16 h-16 rounded-full bg-[#161616] border border-[#262626] flex items-center justify-center mb-4">
-          <svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" fill="none" stroke="#6b7280" strokeWidth="1.5" viewBox="0 0 24 24"><path d="M3 7a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><path d="M3 7l9 6 9-6"/></svg>
+          <svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" fill="none" stroke="#6b7280" strokeWidth="1.5" viewBox="0 0 24 24">
+            <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/>
+          </svg>
         </div>
         <p className="text-[#a3a3a3] text-sm">This folder is empty</p>
         <p className="text-[#6b7280] text-xs mt-1">Upload files or create a folder to get started</p>
@@ -49,6 +51,7 @@ export default function FileGrid({
           view="grid"
           isSelected={selectedItems.has(item.path)}
           isCut={cutPaths?.has(item.path)}
+          selectionIndex={selectionOrder?.get(item.path)}
           onSelect={(e) => onSelect(item, e)}
           onDoubleClick={() => item.tag === 'folder' ? onNavigate(item.path) : null}
           onContextMenu={(e) => onContextMenu(e, item)}

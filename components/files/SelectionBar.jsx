@@ -46,7 +46,7 @@ export default function SelectionBar({
 
         <div className="w-px h-5 bg-[#4f46e5]/30" />
 
-        <Button size="sm" variant="ghost" icon={<Copy size={13} />} onClick={() => onCopy(selectedArr)}>
+        {/* <Button size="sm" variant="ghost" icon={<Copy size={13} />} onClick={() => onCopy(selectedArr)}>
           Copy
         </Button>
         <Button size="sm" variant="ghost" icon={<Scissors size={13} />} onClick={() => onCut(selectedArr)}>
@@ -54,7 +54,7 @@ export default function SelectionBar({
         </Button>
         <Button size="sm" variant="ghost" icon={<Clipboard size={13} />} onClick={onPaste} disabled={!canPaste}>
           Paste
-        </Button>
+        </Button> */}
 
         <div className="w-px h-5 bg-[#4f46e5]/30" />
 

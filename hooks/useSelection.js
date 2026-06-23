@@ -3,12 +3,15 @@
 import { useState, useCallback, useRef } from 'react'
 
 export function useSelection(allItems = []) {
-  const [selectedItems, setSelectedItems] = useState(new Set())
+  // Map<path, selectionIndex> — 1-based, reflects insertion order
+  const [selectionOrder, setSelectionOrder] = useState(new Map())
   const lastClickedRef = useRef(null)
 
+  const selectedItems = new Set(selectionOrder.keys())
+
   const toggleSelect = useCallback((path, e) => {
-    setSelectedItems(prev => {
-      const next = new Set(prev)
+    setSelectionOrder(prev => {
+      const next = new Map(prev)
 
       if (e?.shiftKey && lastClickedRef.current) {
         const allPaths = allItems.map(i => i.path)
@@ -16,17 +19,27 @@ export function useSelection(allItems = []) {
         const toIdx    = allPaths.indexOf(path)
         if (fromIdx !== -1 && toIdx !== -1) {
           const [start, end] = fromIdx < toIdx ? [fromIdx, toIdx] : [toIdx, fromIdx]
-          allPaths.slice(start, end + 1).forEach(p => next.add(p))
+          let maxOrd = next.size > 0 ? Math.max(...next.values()) : 0
+          allPaths.slice(start, end + 1).forEach(p => {
+            if (!next.has(p)) next.set(p, ++maxOrd)
+          })
           return next
         }
       }
 
       if (e?.ctrlKey || e?.metaKey) {
-        if (next.has(path)) next.delete(path)
-        else next.add(path)
+        if (next.has(path)) {
+          next.delete(path)
+          // Compact: renumber remaining in existing order
+          const sorted = [...next.entries()].sort((a, b) => a[1] - b[1])
+          const re = new Map()
+          sorted.forEach(([p], i) => re.set(p, i + 1))
+          return re
+        }
+        next.set(path, next.size + 1)
       } else {
         next.clear()
-        next.add(path)
+        next.set(path, 1)
       }
 
       lastClickedRef.current = path
@@ -35,13 +48,22 @@ export function useSelection(allItems = []) {
   }, [allItems])
 
   const selectAll = useCallback(() => {
-    setSelectedItems(new Set(allItems.map(i => i.path)))
+    const m = new Map()
+    allItems.forEach((item, i) => m.set(item.path, i + 1))
+    setSelectionOrder(m)
   }, [allItems])
 
   const clearSelection = useCallback(() => {
-    setSelectedItems(new Set())
+    setSelectionOrder(new Map())
     lastClickedRef.current = null
   }, [])
 
-  return { selectedItems, toggleSelect, selectAll, clearSelection, setSelectedItems }
+  return {
+    selectedItems,
+    selectionOrder,
+    toggleSelect,
+    selectAll,
+    clearSelection,
+    setSelectionOrder,
+  }
 }

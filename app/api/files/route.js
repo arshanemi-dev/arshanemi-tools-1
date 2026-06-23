@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server'
-import { listFolder, createFolder, copyItem, moveItem, deleteItems, getSharedLink } from '@/lib/storage'
+import { listFolder, createFolder, ensureFolder, copyItem, moveItem, deleteItems, getSharedLink } from '@/lib/storage'
 import { getParentPath } from '@/lib/utils'
 
 function getToken(request) {
@@ -14,6 +14,7 @@ export async function GET(request) {
     const data  = await listFolder(path, token)
     return NextResponse.json(data)
   } catch (err) {
+    console.log(err)
     return NextResponse.json({ error: err.message }, { status: 500 })
   }
 }
@@ -28,6 +29,12 @@ export async function POST(request) {
       const { path, name } = body
       const fullPath = path ? `${path}/${name}` : `/${name}`
       await createFolder(fullPath, token)
+      return NextResponse.json({ ok: true })
+    }
+
+    if (action === 'ensure-folder') {
+      const { path } = body
+      await ensureFolder(path, token)
       return NextResponse.json({ ok: true })
     }
 

@@ -9,7 +9,12 @@ export function useFiles(currentPath) {
   const [error, setError]     = useState(null)
   const abortRef              = useRef(null)
 
+  // null means "not ready yet" — skip fetching
+  const disabled = currentPath === null
+
   const fetchFiles = useCallback(async () => {
+    if (disabled) return
+
     abortRef.current?.abort()
     abortRef.current = new AbortController()
 
@@ -21,7 +26,11 @@ export function useFiles(currentPath) {
         `/api/files?path=${encodeURIComponent(currentPath ?? '')}`,
         { signal: abortRef.current.signal }
       )
-      if (!res.ok) throw new Error(`Error ${res.status}: ${res.statusText}`)
+      if (!res.ok) {
+        let msg = `Error ${res.status}`
+        try { const b = await res.json(); if (b?.error) msg = b.error } catch {}
+        throw new Error(msg)
+      }
       const data = await res.json()
       setFolders(data.folders ?? [])
       setFiles(data.files ?? [])
@@ -30,12 +39,13 @@ export function useFiles(currentPath) {
     } finally {
       setLoading(false)
     }
-  }, [currentPath])
+  }, [currentPath, disabled])
 
   useEffect(() => {
+    if (disabled) return
     fetchFiles()
     return () => abortRef.current?.abort()
-  }, [fetchFiles])
+  }, [fetchFiles, disabled])
 
   return { folders, files, loading, error, refetch: fetchFiles }
 }

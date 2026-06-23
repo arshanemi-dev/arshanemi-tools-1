@@ -76,9 +76,9 @@ export default function ContextMenu({
       )}
       <MenuItem icon={Pencil}    label="Rename"   onClick={() => { onRename(item); onClose() }} />
       <Divider />
-      <MenuItem icon={Copy}      label="Copy"     onClick={() => { onCopy([item.path]); onClose() }} />
-      <MenuItem icon={Scissors}  label="Cut"      onClick={() => { onCut([item.path]);  onClose() }} />
-      <MenuItem icon={Clipboard} label="Paste"    onClick={() => { onPaste(); onClose() }} disabled={!canPaste} />
+      {/* <MenuItem icon={Copy}      label="Copy"     onClick={() => { onCopy([item.path]); onClose() }} />
+      <MenuItem icon={Scissors}  label="Cut"      onClick={() => { onCut([item.path]);  onClose() }} /> */}
+      {/* <MenuItem icon={Clipboard} label="Paste"    onClick={() => { onPaste(); onClose() }} disabled={!canPaste} /> */}
       <Divider />
       {!isFolder && (
         <MenuItem icon={Link2} label="Copy URL" onClick={() => { onCopyUrl(item); onClose() }} />

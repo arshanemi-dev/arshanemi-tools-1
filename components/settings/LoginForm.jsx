@@ -3,6 +3,7 @@
 import { useState } from 'react'
 import { LogIn, Eye, EyeOff, AlertCircle } from 'lucide-react'
 import { saveAuthTokens } from '@/lib/tokenStore'
+import { ensureUserFolderFromClient } from '@/lib/userAccess'
 import Button from '@/components/ui/Button'
 
 const API_BASE = process.env.NEXT_PUBLIC_ADMIN_API_URL ?? ''
@@ -39,6 +40,8 @@ export default function LoginForm({ onSuccess }) {
         expiresIn:    data.expiresIn ?? 900,
         user:         data.user,
       })
+
+      if (data.user) ensureUserFolderFromClient(data.user).catch(() => {})
 
       onSuccess?.(data.user)
     } catch (err) {
