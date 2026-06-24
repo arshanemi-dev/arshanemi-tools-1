@@ -274,40 +274,16 @@ export default function FileList({
             <th className="w-10 px-3 py-2" />
 
             <SortTh col="name"     label="Name"     colSort={colSort} onSort={handleSort} className="min-w-[180px]" />
-            <SortTh col="type"     label="Type"     colSort={colSort} onSort={handleSort} className="w-20 hidden sm:table-cell" />
+            {/* <SortTh col="type"     label="Type"     colSort={colSort} onSort={handleSort} className="w-20 hidden sm:table-cell" />
             <SortTh col="modified" label="Modified" colSort={colSort} onSort={handleSort} className="w-28 hidden md:table-cell" />
-            <SortTh col="size"     label="Size"     colSort={colSort} onSort={handleSort} className="w-20 text-right" />
+            <SortTh col="size"     label="Size"     colSort={colSort} onSort={handleSort} className="w-20 text-right" /> */}
             {/* Link column header (Task 9) */}
             <th className="w-14 px-3 py-2 text-left text-[11px] font-semibold text-[#6b7280]">Link</th>
             {/* Actions */}
             {hasRowCallbacks && <th className="w-28 px-3 py-2" />}
           </tr>
 
-          {/* ── Per-column search row (Task 8) ── */}
-          <tr className="bg-[#0a0a0a] border-b border-[#262626]">
-            {/* T3: empty cell for select-button column */}
-            <td className="px-2 py-1.5" />
-            <td className="px-3 py-1.5" />
-            {(['name', 'type', 'modified', 'size']).map((col, i) => (
-              <td
-                key={col}
-                className={cn(
-                  'px-2 py-1.5',
-                  (col === 'type')     && 'hidden sm:table-cell',
-                  (col === 'modified') && 'hidden md:table-cell',
-                )}
-              >
-                <input
-                  value={colSearch[col]}
-                  onChange={e => updateSearch(col, e.target.value)}
-                  placeholder={`Filter…`}
-                  className="w-full px-2 h-6 bg-[#111111] border border-[#262626] rounded-[5px] text-[10px] text-[#f5f5f5] placeholder-[#444] focus:outline-none focus:border-[#4f46e5] transition-colors"
-                />
-              </td>
-            ))}
-            <td className="px-2 py-1.5" />
-            {hasRowCallbacks && <td className="px-2 py-1.5" />}
-          </tr>
+        
         </thead>
 
         <tbody>
@@ -399,7 +375,7 @@ function ListRow({
       </td>
 
       {/* Name */}
-      <td className="px-3 py-2 min-w-[180px]">
+      <td className="px-3 py-2 min-w-[180px] w-full">
         <span className="text-xs text-[#f5f5f5] truncate block max-w-[300px]" title={item.name}>
           {item.name.length > 40 ? item.name.slice(0, 38) + '…' : item.name}
         </span>
@@ -410,33 +386,7 @@ function ListRow({
         )}
       </td>
 
-      {/* Type */}
-      <td className="px-3 py-2 w-20 hidden sm:table-cell">
-        <span className="text-[10px] text-[#6b7280] font-mono">{ext}</span>
-      </td>
-
-      {/* Modified */}
-      <td className="px-3 py-2 w-28 hidden md:table-cell">
-        <span className="text-[10px] text-[#6b7280]">
-          {item.modified ? new Date(item.modified).toLocaleDateString() : '—'}
-        </span>
-      </td>
-
-      {/* Size */}
-      <td className="px-3 py-2 w-20 text-right">
-        <span className="text-[10px] text-[#6b7280]">
-          {item.size != null ? formatBytes(item.size) : isFolder ? '—' : '—'}
-        </span>
-      </td>
-
-      {/* Link column (Task 9) */}
-      <td className="px-3 py-2 w-14">
-        {!isFolder && (
-          <span className="text-[9px] text-[#4f46e5] font-mono truncate block max-w-[80px]" title={item.path}>
-            {item.path.split('/').pop()}
-          </span>
-        )}
-      </td>
+   
 
       {/* Row actions (Task 9) */}
       {hasRowCallbacks && (

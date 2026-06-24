@@ -156,7 +156,7 @@ function RightToolbar({
         )}
       >
         {copyingExcel ? <Loader2 size={12} className="animate-spin" /> : <Table2 size={12} />}
-        {copyingExcel ? 'Copying…' : 'Copy Excel'}
+        {copyingExcel ? 'Copying…' : 'Copy'}
       </button>
 
       {/* Copy List URLs */}
@@ -165,7 +165,7 @@ function RightToolbar({
         disabled={copyingList || !hasSelection}
         title={!hasSelection ? 'Select files first' : 'Copy URL list'}
         className={cn(
-          'flex items-center gap-1.5 px-2.5 h-8 text-xs rounded-[8px] font-medium border transition-all shrink-0',
+          'flex items-center gap-1.5 px-2.5 h-8 text-xs rounded-[8px] font-medium border transition-all shrink-0 hidden',
           copyingList
             ? 'bg-[#064e3b] border-[#10b981]/40 text-[#10b981]'
             : hasSelection
@@ -452,7 +452,7 @@ export default function FileExplorer({ path: pathSegments = [] }) {
       const rows   = groups.map(row =>
         Array.from({ length: groupSize }).map((_, ci) => row[ci] ?? '').join('\t')
       )
-      await navigator.clipboard.writeText([header, ...rows].join('\n'))
+      await navigator.clipboard.writeText([...rows].join('\n'))
       toast('Excel URLs copied!', 'success')
     } catch (e) {
       toast(e.message ?? 'Copy failed', 'error')
