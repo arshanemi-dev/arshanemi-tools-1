@@ -58,10 +58,29 @@ export function useSelection(allItems = []) {
     lastClickedRef.current = null
   }, [])
 
+  // Always-toggle: add if absent, remove if present — no single-select clearing
+  const toggleItem = useCallback((path) => {
+    setSelectionOrder(prev => {
+      const next = new Map(prev)
+      if (next.has(path)) {
+        next.delete(path)
+        // Compact renumber
+        const sorted = [...next.entries()].sort((a, b) => a[1] - b[1])
+        const re = new Map()
+        sorted.forEach(([p], i) => re.set(p, i + 1))
+        return re
+      }
+      next.set(path, next.size + 1)
+      lastClickedRef.current = path
+      return next
+    })
+  }, [])
+
   return {
     selectedItems,
     selectionOrder,
     toggleSelect,
+    toggleItem,
     selectAll,
     clearSelection,
     setSelectionOrder,

@@ -1,13 +1,15 @@
 'use client'
+// CopyUrlsModal — last updated 2026-06-24
+// T10: Copy Excel + Copy List buttons show loading spinners while processing
 
 import { useState, useEffect } from 'react'
-import { Copy, Table2, Braces, List, Check, Pencil, X } from 'lucide-react'
-import Modal  from '@/components/ui/Modal'
-import Button from '@/components/ui/Button'
+import { Table2, Braces, List, Check, Pencil, Loader2 } from 'lucide-react'
+import Modal   from '@/components/ui/Modal'
+import Button  from '@/components/ui/Button'
 import Spinner from '@/components/ui/Spinner'
-import { cn } from '@/lib/utils'
+import { cn }  from '@/lib/utils'
 
-const GROUP_SIZES = [2, 3, 4, 5]
+const GROUP_SIZES  = [2, 3, 4, 5]
 const SORT_OPTIONS = [
   { value: 'selection', label: 'Selection ↑' },
   { value: 'name-asc',  label: 'Name ↑' },
@@ -15,15 +17,7 @@ const SORT_OPTIONS = [
   { value: 'date',      label: 'Date' },
 ]
 
-function useCopied(timeout = 1800) {
-  const [copied, setCopied] = useState(null)
-  const trigger = (key) => {
-    setCopied(key)
-    setTimeout(() => setCopied(null), timeout)
-  }
-  return [copied, trigger]
-}
-
+/* ─── Editable group column name ─────────────────────────────────── */
 function GroupNameEditor({ index, name, onChange }) {
   const [editing, setEditing] = useState(false)
   const [draft,   setDraft]   = useState(name)
@@ -59,15 +53,18 @@ function GroupNameEditor({ index, name, onChange }) {
   )
 }
 
+/* ─── CopyUrlsModal ──────────────────────────────────────────────── */
 export default function CopyUrlsModal({ open, onClose, items = [], selectionOrder, toast }) {
-  const [groupSize,   setGroupSize]   = useState(3)
-  const [sortBy,      setSortBy]      = useState('selection')
-  const [groupNames,  setGroupNames]  = useState({})
-  const [result,      setResult]      = useState(null)
-  const [loading,     setLoading]     = useState(false)
-  const [copied,      triggerCopied]  = useCopied()
+  const [groupSize,  setGroupSize]  = useState(3)
+  const [sortBy,     setSortBy]     = useState('selection')
+  const [groupNames, setGroupNames] = useState({})
+  const [result,     setResult]     = useState(null)
+  const [loading,    setLoading]    = useState(false)
 
-  // Sort items by selection order when sortBy === 'selection'
+  // Per-button copy loading state (Task 10)
+  const [copying, setCopying] = useState(null) // null | 'excel' | 'json' | 'list'
+
+  // Sort items by selection order
   const sortedItems = (() => {
     const arr = [...items]
     if (sortBy === 'selection' && selectionOrder?.size) {
@@ -82,20 +79,16 @@ export default function CopyUrlsModal({ open, onClose, items = [], selectionOrde
 
   const urls = sortedItems.map(i => i.url ?? i)
 
-  // Default group names: "Group 1", "Group 2", …
   const getGroupName = (index) => groupNames[index] ?? `Group ${index + 1}`
-
-  const setGroupName = (index, name) => {
-    setGroupNames(prev => ({ ...prev, [index]: name }))
-  }
+  const setGroupName = (index, name) => setGroupNames(prev => ({ ...prev, [index]: name }))
 
   useEffect(() => {
     if (!open || !urls.length) return
     setLoading(true)
     fetch('/api/urls', {
-      method: 'POST',
+      method:  'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ items: urls, groupSize, sortBy }),
+      body:    JSON.stringify({ items: urls, groupSize, sortBy }),
     })
       .then(r => r.json())
       .then(data => setResult(data))
@@ -103,27 +96,27 @@ export default function CopyUrlsModal({ open, onClose, items = [], selectionOrde
       .finally(() => setLoading(false))
   }, [open, groupSize, sortBy, urls.length])
 
-  // Reset group names when group size changes
   useEffect(() => { setGroupNames({}) }, [groupSize])
 
   async function copyText(text, key) {
+    setCopying(key)
     try {
       await navigator.clipboard.writeText(text)
-      triggerCopied(key)
+      await new Promise(r => setTimeout(r, 400)) // brief visible loader
       toast?.('Copied!', 'success')
     } catch {
       toast?.('Copy failed', 'error')
+    } finally {
+      setCopying(null)
     }
   }
 
-  // Build groups array with custom names
   const groups = result?.groups ?? []
 
-  // Build named TSV (group names as headers)
   function buildNamedTsv() {
     if (!groups.length) return ''
     const header = Array.from({ length: groupSize }).map((_, i) => getGroupName(i)).join('\t')
-    const rows = groups.map(row =>
+    const rows   = groups.map(row =>
       Array.from({ length: groupSize }).map((_, ci) => row[ci] ?? '').join('\t')
     )
     return [header, ...rows].join('\n')
@@ -132,6 +125,19 @@ export default function CopyUrlsModal({ open, onClose, items = [], selectionOrde
   return (
     <Modal open={open} onClose={onClose} title="Copy URLs" size="3xl">
       <div className="flex flex-col gap-5">
+
+        {/* Selection count (Task 10) */}
+        <div className="flex items-center gap-2 px-3 py-2 bg-[#111111] rounded-[8px] border border-[#262626]">
+          <span className="text-[11px] text-[#6b7280]">Selected:</span>
+          <span className="text-sm font-bold text-[#818cf8]">{urls.length}</span>
+          <span className="text-[11px] text-[#6b7280]">file{urls.length !== 1 ? 's' : ''}</span>
+          {result && (
+            <>
+              <span className="text-[#333333]">·</span>
+              <span className="text-[11px] text-[#6b7280]">{result.groupCount} group{result.groupCount !== 1 ? 's' : ''}</span>
+            </>
+          )}
+        </div>
 
         {/* Controls */}
         <div className="flex items-center gap-4 flex-wrap">
@@ -176,26 +182,14 @@ export default function CopyUrlsModal({ open, onClose, items = [], selectionOrde
               ))}
             </div>
           </div>
-
-          {/* Counter */}
-          <div className="ml-auto text-xs text-[#6b7280]">
-            {result
-              ? `${result.total} file${result.total !== 1 ? 's' : ''} · ${result.groupCount} group${result.groupCount !== 1 ? 's' : ''}`
-              : `${urls.length} file${urls.length !== 1 ? 's' : ''}`}
-          </div>
         </div>
 
-        {/* Group name legend */}
+        {/* Column name legend */}
         {groups.length > 0 && (
           <div className="flex items-center gap-2 flex-wrap">
             <span className="text-xs text-[#6b7280]">Column names (click to rename):</span>
             {Array.from({ length: groupSize }).map((_, i) => (
-              <GroupNameEditor
-                key={i}
-                index={i}
-                name={getGroupName(i)}
-                onChange={setGroupName}
-              />
+              <GroupNameEditor key={i} index={i} name={getGroupName(i)} onChange={setGroupName} />
             ))}
           </div>
         )}
@@ -226,14 +220,6 @@ export default function CopyUrlsModal({ open, onClose, items = [], selectionOrde
                     <td className="px-3 py-2 text-[#6b7280] font-mono font-semibold">{ri + 1}</td>
                     {Array.from({ length: groupSize }).map((_, ci) => {
                       const url = row[ci]
-                      // find selection index for this url
-                      const selIdx = selectionOrder
-                        ? [...(selectionOrder.entries() ?? [])].find(([k]) => {
-                            const item = items.find(i => (i.url ?? i) === url)
-                            return item && (item.url ?? item) === (items.find(ii => selectionOrder.get(ii.url ?? ii) !== undefined)?.url)
-                          })
-                        : null
-
                       return (
                         <td key={ci} className="px-3 py-2">
                           {url ? (
@@ -264,44 +250,66 @@ export default function CopyUrlsModal({ open, onClose, items = [], selectionOrde
           )}
         </div>
 
-        {/* Action buttons */}
-        <div className="flex gap-2 flex-wrap">
-          <Button
-            size="sm"
-            variant="secondary"
-            icon={copied === 'tsv' ? <Check size={13} /> : <Table2 size={13} />}
-            onClick={() => copyText(buildNamedTsv(), 'tsv')}
-            disabled={!result || loading}
-            className={copied === 'tsv' ? 'border-[#10b981]/50 text-[#10b981]' : ''}
-          >
-            {copied === 'tsv' ? 'Copied!' : 'Copy for Excel (named)'}
-          </Button>
+        {/* Action buttons — with loading spinners (Task 10) */}
+        <div className="flex gap-2 flex-wrap items-center">
 
-          <Button
-            size="sm"
-            variant="secondary"
-            icon={copied === 'json' ? <Check size={13} /> : <Braces size={13} />}
-            onClick={() => result?.json && copyText(result.json, 'json')}
-            disabled={!result || loading}
-            className={copied === 'json' ? 'border-[#10b981]/50 text-[#10b981]' : ''}
+          {/* Copy Excel */}
+          <button
+            onClick={() => copyText(buildNamedTsv(), 'excel')}
+            disabled={!result || loading || copying === 'excel'}
+            className={cn(
+              'flex items-center gap-2 px-4 h-9 rounded-[8px] text-xs font-semibold border transition-all',
+              copying === 'excel'
+                ? 'bg-[#064e3b] border-[#10b981]/40 text-[#10b981]'
+                : 'bg-[#111111] border-[#333333] text-[#a3a3a3] hover:border-[#4f46e5] hover:text-[#f5f5f5] disabled:opacity-40 disabled:cursor-not-allowed'
+            )}
           >
-            {copied === 'json' ? 'Copied!' : 'Copy as JSON'}
-          </Button>
+            {copying === 'excel'
+              ? <Loader2 size={13} className="animate-spin" />
+              : <Table2 size={13} />}
+            {copying === 'excel' ? 'Copying…' : 'Copy Excel'}
+          </button>
 
-          <Button
-            size="sm"
-            variant="secondary"
-            icon={copied === 'list' ? <Check size={13} /> : <List size={13} />}
+          {/* Copy List */}
+          <button
             onClick={() => copyText(urls.join('\n'), 'list')}
-            disabled={!urls.length || loading}
-            className={copied === 'list' ? 'border-[#10b981]/50 text-[#10b981]' : ''}
+            disabled={!urls.length || loading || copying === 'list'}
+            className={cn(
+              'flex items-center gap-2 px-4 h-9 rounded-[8px] text-xs font-semibold border transition-all',
+              copying === 'list'
+                ? 'bg-[#064e3b] border-[#10b981]/40 text-[#10b981]'
+                : 'bg-[#111111] border-[#333333] text-[#a3a3a3] hover:border-[#4f46e5] hover:text-[#f5f5f5] disabled:opacity-40 disabled:cursor-not-allowed'
+            )}
           >
-            {copied === 'list' ? 'Copied!' : 'Copy plain list'}
-          </Button>
+            {copying === 'list'
+              ? <Loader2 size={13} className="animate-spin" />
+              : <List size={13} />}
+            {copying === 'list' ? 'Copying…' : 'Copy List'}
+          </button>
 
-          <Button size="sm" variant="ghost" className="ml-auto" onClick={onClose}>
+          {/* Copy JSON */}
+          <button
+            onClick={() => result?.json && copyText(result.json, 'json')}
+            disabled={!result || loading || copying === 'json'}
+            className={cn(
+              'flex items-center gap-2 px-4 h-9 rounded-[8px] text-xs font-semibold border transition-all',
+              copying === 'json'
+                ? 'bg-[#064e3b] border-[#10b981]/40 text-[#10b981]'
+                : 'bg-[#111111] border-[#333333] text-[#a3a3a3] hover:border-[#818cf8] hover:text-[#f5f5f5] disabled:opacity-40 disabled:cursor-not-allowed'
+            )}
+          >
+            {copying === 'json'
+              ? <Loader2 size={13} className="animate-spin" />
+              : <Braces size={13} />}
+            {copying === 'json' ? 'Copying…' : 'Copy JSON'}
+          </button>
+
+          <button
+            onClick={onClose}
+            className="ml-auto px-4 h-9 rounded-[8px] text-xs text-[#6b7280] hover:text-[#f5f5f5] hover:bg-[#1c1c1c] transition-colors"
+          >
             Close
-          </Button>
+          </button>
         </div>
       </div>
     </Modal>

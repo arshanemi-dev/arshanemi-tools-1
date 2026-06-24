@@ -1,11 +1,15 @@
 'use client'
+// FileExplorer — last updated 2026-06-25
+// T1: right panel shows ONLY files (no sub-folders rendered)
+// T2: recursive file listing — every file in selected folder tree appears
+// T3: per-row checkbox in FileList
+// Toolbar: single row — search · count · Copy Excel · Copy List · Delete · Upload
 
-import { useState, useEffect, useCallback, useMemo } from 'react'
+import { useState, useEffect, useCallback, useMemo, useRef } from 'react'
 import {
-  Search, X, Image as ImageIcon, Video, LayoutGrid, List,
-  ArrowUpDown, RefreshCw, PanelLeftClose, PanelLeftOpen,
-  Upload, CheckSquare, FolderPlus,
-} from 'lucide-react'
+  Search, X, RefreshCw, PanelLeftClose, PanelLeftOpen,
+  Upload, Trash2, Table2, List as ListIcon, Loader2, Layers2,
+} from 'lucide-react';
 
 import { useFiles }       from '@/hooks/useFiles'
 import { useAuthGate }    from '@/hooks/useAuthGate'
@@ -28,203 +32,232 @@ import UploadModal         from './UploadModal'
 import CopyUrlsModal       from './CopyUrlsModal'
 import DropZone            from './DropZone'
 import Spinner             from '@/components/ui/Spinner'
-import Button              from '@/components/ui/Button'
 
-const SORT_OPTIONS = [
-  { value: 'name', label: 'Name' },
-  { value: 'date', label: 'Date'  },
-  { value: 'size', label: 'Size'  },
-  { value: 'type', label: 'Type'  },
-]
+const GROUP_SIZES = [1, 2, 3, 4]
 
-/* ── Multi-folder file fetcher ───────────────────────────────────────── */
-async function fetchFolderFiles(path) {
-  const res = await fetch(`/api/files?path=${encodeURIComponent(path ?? '')}`)
-  if (!res.ok) throw new Error(`Error ${res.status}`)
-  return res.json()
+/* ── T2: BFS recursive file fetcher ──────────────────────────────── */
+async function fetchAllFilesRecursive(rootPaths) {
+  const allFiles = []
+  const queue    = [...rootPaths]
+
+  while (queue.length > 0) {
+    const batch   = queue.splice(0, 5)
+    const results = await Promise.all(
+      batch.map(p =>
+        fetch(`/api/files?path=${encodeURIComponent(p)}`)
+          .then(r => r.ok ? r.json() : { folders: [], files: [] })
+          .catch(() => ({ folders: [], files: [] }))
+      )
+    )
+    results.forEach(data => {
+      allFiles.push(...(data.files  ?? []))
+      queue.push(  ...(data.folders ?? []).map(f => f.path))
+    })
+  }
+
+  return allFiles
 }
 
-/* ── Toolbar (right panel top) ───────────────────────────────────────── */
+/* ── Single-row toolbar ───────────────────────────────────────────── */
 function RightToolbar({
-  view, sortBy, filter, search,
-  onViewChange, onSortChange, onFilterChange, onSearchChange,
-  onSelectAll, onNewFolder, onUpload,
-  uploadDisabled, selectedCount, fileCount,
+  search, onSearchChange,
+  onUpload, uploadDisabled,
+  selectedCount, fileCount,
+  onDeleteSelected,
+  onCopyExcel, copyingExcel,
+  onCopyList,  copyingList,
+  multiSelectMode, onToggleMultiSelect,
+  groupSize, onGroupSizeChange,
 }) {
+  const hasSelection = selectedCount > 1
+
   return (
-    <div className="flex flex-col gap-2 px-4 py-3 border-b border-[#1e1e1e] bg-[#0d0d0d]">
-      {/* Row 1: search + upload */}
-      <div className="flex items-center gap-2">
-        {/* Search */}
-        <div className="relative flex-1 max-w-xs">
-          <Search size={13} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-[#6b7280]" />
-          <input
-            value={search}
-            onChange={e => onSearchChange(e.target.value)}
-            placeholder="Search files…"
-            className="w-full pl-8 pr-8 h-8 bg-[#111111] border border-[#262626] rounded-[8px] text-xs text-[#f5f5f5] placeholder-[#6b7280] focus:outline-none focus:border-[#4f46e5] transition-colors"
-          />
-          {search && (
-            <button
-              onClick={() => onSearchChange('')}
-              className="absolute right-2 top-1/2 -translate-y-1/2 text-[#6b7280] hover:text-[#f5f5f5]"
-            >
-              <X size={12} />
-            </button>
-          )}
-        </div>
+    <div className="flex items-center gap-2 px-4 py-2.5 border-b border-[#1e1e1e] bg-[#0d0d0d] shrink-0">
 
-        {/* Spacer */}
-        <div className="flex-1" />
-
-        {/* Select all */}
-        <button
-          onClick={onSelectAll}
-          title="Select All (Ctrl+A)"
-          className="flex items-center gap-1.5 px-2.5 h-8 text-xs rounded-[8px] text-[#a3a3a3] hover:text-[#f5f5f5] hover:bg-[#1c1c1c] transition-colors"
-        >
-          <CheckSquare size={13} />
-          <span className="hidden md:inline">Select All</span>
-        </button>
-
-        {/* New folder */}
-        <button
-          onClick={onNewFolder}
-          title="New Folder"
-          className="flex items-center gap-1.5 px-2.5 h-8 text-xs rounded-[8px] text-[#a3a3a3] hover:text-[#f5f5f5] hover:bg-[#1c1c1c] transition-colors"
-        >
-          <FolderPlus size={13} />
-          <span className="hidden md:inline">New Folder</span>
-        </button>
-
-        {/* Upload */}
-        <button
-          onClick={onUpload}
-          disabled={uploadDisabled}
-          title={uploadDisabled ? 'Select a single folder to upload' : 'Upload Files'}
-          className={cn(
-            'flex items-center gap-1.5 px-3 h-8 text-xs rounded-[8px] font-medium transition-all',
-            uploadDisabled
-              ? 'bg-[#1c1c1c] text-[#6b7280] cursor-not-allowed opacity-50'
-              : 'bg-[#4f46e5] hover:bg-[#4338ca] text-white shadow-sm'
-          )}
-        >
-          <Upload size={13} />
-          Upload
-        </button>
-      </div>
-
-      {/* Row 2: filters + sort + view */}
-      <div className="flex items-center gap-2 flex-wrap">
-        {/* Type filter pills */}
-        <div className="flex items-center gap-1">
-          {[
-            { key: 'all',    label: 'All' },
-            { key: 'images', label: 'Images', icon: ImageIcon },
-            { key: 'videos', label: 'Videos', icon: Video },
-          ].map(opt => (
-            <button
-              key={opt.key}
-              onClick={() => onFilterChange(opt.key)}
-              className={cn(
-                'flex items-center gap-1 px-2.5 h-7 rounded-full text-xs font-medium transition-all',
-                filter === opt.key
-                  ? opt.key === 'images'
-                    ? 'bg-[#1e1b4b] text-[#818cf8] border border-[#4f46e5]/50'
-                    : opt.key === 'videos'
-                    ? 'bg-[#451a03] text-[#f59e0b] border border-[#f59e0b]/30'
-                    : 'bg-[#4f46e5] text-white'
-                  : 'bg-[#1c1c1c] text-[#6b7280] hover:text-[#a3a3a3] border border-[#262626]'
-              )}
-            >
-              {opt.icon && <opt.icon size={11} />}
-              {opt.label}
-            </button>
-          ))}
-        </div>
-
-        {/* Stats */}
-        {fileCount > 0 && (
-          <span className="text-[10px] text-[#6b7280]">
-            {fileCount} file{fileCount !== 1 ? 's' : ''}
-            {selectedCount > 0 && <span className="text-[#818cf8] ml-1">· {selectedCount} selected</span>}
-          </span>
+      {/* Search */}
+      <div className="relative w-52 shrink-0">
+        <Search size={13} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-[#6b7280]" />
+        <input
+          value={search}
+          onChange={e => onSearchChange(e.target.value)}
+          placeholder="Search files…"
+          className="w-full pl-8 pr-7 h-8 bg-[#111111] border border-[#262626] rounded-[8px] text-xs text-[#f5f5f5] placeholder-[#6b7280] focus:outline-none focus:border-[#4f46e5] transition-colors"
+        />
+        {search && (
+          <button
+            onClick={() => onSearchChange('')}
+            className="absolute right-2 top-1/2 -translate-y-1/2 text-[#6b7280] hover:text-[#f5f5f5]"
+          >
+            <X size={12} />
+          </button>
         )}
-
-        <div className="ml-auto flex items-center gap-1.5">
-          {/* Sort */}
-          <div className="relative group/sort">
-            <button className="flex items-center gap-1 px-2.5 h-7 text-xs rounded-[8px] bg-[#111111] border border-[#262626] text-[#a3a3a3] hover:text-[#f5f5f5] hover:border-[#4f46e5] transition-all cursor-pointer">
-              <ArrowUpDown size={11} />
-              {SORT_OPTIONS.find(o => o.value === sortBy)?.label}
-            </button>
-            <div className="absolute right-0 top-full mt-1 py-1 w-32 bg-[#161616] border border-[#333333] rounded-[8px] shadow-xl z-30 hidden group-hover/sort:block">
-              {SORT_OPTIONS.map(opt => (
-                <button
-                  key={opt.value}
-                  onClick={() => onSortChange(opt.value)}
-                  className={cn(
-                    'w-full text-left px-3 py-1.5 text-xs transition-colors',
-                    sortBy === opt.value
-                      ? 'text-[#818cf8] bg-[#1e1b4b]'
-                      : 'text-[#a3a3a3] hover:text-[#f5f5f5] hover:bg-[#1c1c1c]'
-                  )}
-                >
-                  {opt.label}
-                </button>
-              ))}
-            </div>
-          </div>
-
-          {/* View toggle */}
-          <div className="flex bg-[#111111] border border-[#262626] rounded-[8px] p-0.5">
-            <button
-              onClick={() => onViewChange('grid')}
-              className={cn('p-1.5 rounded-[6px] transition-all', view === 'grid' ? 'bg-[#4f46e5] text-white' : 'text-[#6b7280] hover:text-[#f5f5f5]')}
-              title="Grid view"
-            >
-              <LayoutGrid size={13} />
-            </button>
-            <button
-              onClick={() => onViewChange('list')}
-              className={cn('p-1.5 rounded-[6px] transition-all', view === 'list' ? 'bg-[#4f46e5] text-white' : 'text-[#6b7280] hover:text-[#f5f5f5]')}
-              title="List view"
-            >
-              <List size={13} />
-            </button>
-          </div>
-        </div>
       </div>
+
+      {/* File / selection count */}
+      {fileCount > 0 && (
+        <span className="text-[10px] text-[#6b7280] shrink-0 whitespace-nowrap">
+          {fileCount} file{fileCount !== 1 ? 's' : ''}
+          {hasSelection && (
+            <span className="text-[#818cf8] ml-1">· {selectedCount} selected</span>
+          )}
+        </span>
+      )}
+
+      {/* Multi-select mode toggle */}
+      <button
+        onClick={onToggleMultiSelect}
+        title={multiSelectMode ? 'Multi-select ON — click to disable (or press Shift)' : 'Enable multi-select mode (Shift)'}
+        className={cn(
+          'flex items-center gap-1.5 px-2.5 h-8 text-[11px] rounded-[8px] font-medium border transition-all shrink-0',
+          multiSelectMode
+            ? 'bg-[#1e1b4b] border-[#4f46e5]/60 text-[#818cf8] hidden'
+            : 'bg-transparent border-[#222] text-[#3a3a3a] hover:border-[#333] hover:text-[#6b7280] hidden'
+        )}
+      >
+        <Layers2 size={12} />
+        {multiSelectMode ? 'Multi ON' : 'Multi'}
+      </button>
+
+      <div className="flex-1" />
+
+      {/* Group size selector */}
+      <div className="flex items-center gap-1 shrink-0">
+        <span className="text-[10px] text-[#444] mr-0.5">Group</span>
+        {GROUP_SIZES.map(n => (
+          <button
+            key={n}
+             disabled={ !hasSelection}
+            onClick={() => onGroupSizeChange(n)}
+            title={`Group by ${n}`}
+            className={cn(
+              'w-6 h-6 rounded-[5px] text-[11px] font-semibold transition-all',
+              groupSize === n&& hasSelection
+                ? 'bg-[#4f46e5] text-white'
+                : 'bg-[#111] border border-[#262626] text-[#6b7280] hover:border-[#4f46e5] hover:text-[#f5f5f5]'+(hasSelection ? '' : 'bg-[#111] border border-[#262626] text-[#2a2a2a] cursor-not-allowed')
+            )}
+          >
+            {n}
+          </button>
+        ))}
+      </div>
+
+      {/* Copy Excel URLs */}
+      <button
+        onClick={onCopyExcel}
+        disabled={copyingExcel || !hasSelection}
+        title={!hasSelection ? 'Select files first' : `Copy Excel URLs (group of ${groupSize})`}
+        className={cn(
+          'flex items-center gap-1.5 px-2.5 h-8 text-xs rounded-[8px] font-medium border transition-all shrink-0',
+          copyingExcel
+            ? 'bg-[#064e3b] border-[#10b981]/40 text-[#10b981]'
+            : hasSelection
+            ? 'bg-[#111111] border-[#333333] text-[#a3a3a3] hover:border-[#4f46e5] hover:text-[#f5f5f5]'
+            : 'bg-transparent border-[#1e1e1e] text-[#2a2a2a] cursor-not-allowed'
+        )}
+      >
+        {copyingExcel ? <Loader2 size={12} className="animate-spin" /> : <Table2 size={12} />}
+        {copyingExcel ? 'Copying…' : 'Copy Excel'}
+      </button>
+
+      {/* Copy List URLs */}
+      <button
+        onClick={onCopyList}
+        disabled={copyingList || !hasSelection}
+        title={!hasSelection ? 'Select files first' : 'Copy URL list'}
+        className={cn(
+          'flex items-center gap-1.5 px-2.5 h-8 text-xs rounded-[8px] font-medium border transition-all shrink-0',
+          copyingList
+            ? 'bg-[#064e3b] border-[#10b981]/40 text-[#10b981]'
+            : hasSelection
+            ? 'bg-[#111111] border-[#333333] text-[#a3a3a3] hover:border-[#4f46e5] hover:text-[#f5f5f5]'
+            : 'bg-transparent border-[#1e1e1e] text-[#2a2a2a] cursor-not-allowed'
+        )}
+      >
+        {copyingList ? <Loader2 size={12} className="animate-spin" /> : <ListIcon size={12} />}
+        {copyingList ? 'Copying…' : 'Copy List'}
+      </button>
+
+      {/* Delete selected */}
+   
+        <button
+        disabled={!hasSelection}
+          onClick={onDeleteSelected}
+          className={hasSelection ? "flex items-center gap-1.5 px-2.5 h-8 text-xs rounded-[8px] bg-[#450a0a] text-[#ef4444] hover:bg-[#6b1212] transition-colors font-medium shrink-0" : "flex items-center gap-1.5 px-2.5 h-8 text-xs rounded-[8px] bg-[#111] border border-[#262626] text-[#2a2a2a] cursor-not-allowed"}
+        >
+          <Trash2 size={12} />
+          Delete ({selectedCount})
+        </button>
+    
+
+
+
+      {/* Upload */}
+      <button
+        onClick={onUpload}
+        disabled={uploadDisabled}
+        title={uploadDisabled ? 'Select a single folder to upload' : 'Upload Files'}
+        className={cn(
+          'flex items-center gap-1.5 px-3 h-8 text-xs rounded-[8px] font-medium transition-all shrink-0',
+          uploadDisabled
+            ? 'bg-[#1c1c1c] text-[#6b7280] cursor-not-allowed opacity-50'
+            : 'bg-[#4f46e5] hover:bg-[#4338ca] text-white shadow-sm'
+        )}
+      >
+        <Upload size={12} />
+        Upload
+      </button>
     </div>
   )
 }
 
-/* ══ FileExplorer ═══════════════════════════════════════════════════════ */
+/* ══ FileExplorer ════════════════════════════════════════════════════ */
 export default function FileExplorer({ path: pathSegments = [] }) {
   const initialPath = pathSegments.length ? '/' + pathSegments.join('/') : ''
 
   const { checked, authed, userRoot, startPath } = useAuthGate(initialPath)
 
-  // ── Core navigation ──────────────────────────────────────────────────
-  const [currentPath,    setCurrentPath]    = useState(null)
-  const [view,           setView]           = useState('grid')
-  const [sortBy,         setSortBy]         = useState('name')
-  const [filter,         setFilter]         = useState('all')  // all | images | videos
-  const [search,         setSearch]         = useState('')
-  const [sidebarOpen,    setSidebarOpen]    = useState(true)
+  const [currentPath,      setCurrentPath]      = useState(null)
+  const view = 'list'
+  const [search,           setSearch]           = useState('')
+  const [sidebarOpen,      setSidebarOpen]      = useState(true)
+  const [sidebarWidth,     setSidebarWidth]     = useState(384)
+  const sidebarWidthRef = useRef(384)
 
-  // ── Folder sidebar state ─────────────────────────────────────────────
-  // checkedFolders: Set of folder paths checked in sidebar (for multi-display)
-  const [checkedFolders, setCheckedFolders] = useState(new Set())
-  // activeFolderPath: the single folder open as the upload target
+  const handleResizeStart = useCallback((e) => {
+    e.preventDefault()
+    const startX     = e.clientX
+    const startWidth = sidebarWidthRef.current
+
+    function onMove(mv) {
+      const next = Math.min(Math.max(startWidth + (mv.clientX - startX), 180), 680)
+      sidebarWidthRef.current = next
+      setSidebarWidth(next)
+    }
+    function onUp() {
+      document.removeEventListener('mousemove', onMove)
+      document.removeEventListener('mouseup',   onUp)
+      document.body.style.cursor     = ''
+      document.body.style.userSelect = ''
+    }
+    document.body.style.cursor     = 'col-resize'
+    document.body.style.userSelect = 'none'
+    document.addEventListener('mousemove', onMove)
+    document.addEventListener('mouseup',   onUp)
+  }, [])
+
+  const [checkedFolders,   setCheckedFolders]   = useState(new Set())
   const [activeFolderPath, setActiveFolderPath] = useState(null)
 
-  // ── Multi-folder files ───────────────────────────────────────────────
-  const [multiFolderFiles,   setMultiFolderFiles]   = useState([])
-  const [multiFolderFolders, setMultiFolderFolders] = useState([])
-  const [multiLoading,       setMultiLoading]       = useState(false)
+  // Inline copy state
+  const [copyingExcel, setCopyingExcel] = useState(false)
+  const [copyingList,  setCopyingList]  = useState(false)
+  const [groupSize,    setGroupSize]    = useState(1)
 
-  // ── Root-level folders for the sidebar tree (always fetched from userRoot) ──
+  // T2: recursive file-listing state
+  const [rightFiles,   setRightFiles]   = useState([])
+  const [rightLoading, setRightLoading] = useState(false)
+  const [fetchTick,    setFetchTick]    = useState(0)
+
   const [treeRootPath, setTreeRootPath] = useState(null)
   useEffect(() => {
     if (authed && treeRootPath === null) setTreeRootPath(userRoot || '')
@@ -232,42 +265,52 @@ export default function FileExplorer({ path: pathSegments = [] }) {
 
   const { folders: sidebarRootFolders, refetch: refetchSidebar } = useFiles(treeRootPath)
 
-  // ── Single-folder (current active path) ──────────────────────────────
-  const { folders: rootFolders, files: rootFiles, loading: rootLoading, refetch: refetchCurrentPath } =
-    useFiles(currentPath)
-
-  const refetchRoot = useCallback(() => {
-    refetchCurrentPath()
-    refetchSidebar()
-  }, [refetchCurrentPath, refetchSidebar])
-
-  // Determine what to show in right panel
-  const isMultiMode    = checkedFolders.size > 1
-  const displayFolders = isMultiMode ? multiFolderFolders : rootFolders
-  const displayFiles   = isMultiMode ? multiFolderFiles   : rootFiles
-  const loading        = isMultiMode ? multiLoading       : rootLoading
-
-  // ── Modal states ──────────────────────────────────────────────────────
-  const [showNewFolder, setShowNewFolder] = useState(false)
-  const [showRename,    setShowRename]    = useState(false)
-  const [renameItem,    setRenameItem]    = useState(null)
-  const [showDelete,    setShowDelete]    = useState(false)
-  const [deletePaths,   setDeletePaths]  = useState([])
-  const [showUpload,    setShowUpload]    = useState(false)
-  const [showCopyUrls,  setShowCopyUrls]  = useState(false)
-  const [copyUrlItems,  setCopyUrlItems]  = useState([])
-  const [toasts,        setToasts]        = useState([])
-
+  const [toasts, setToasts] = useState([])
   const toast = useCallback((message, type = 'info') => {
     const id = Date.now()
     setToasts(prev => [...prev, { id, message, type }])
     setTimeout(() => setToasts(prev => prev.filter(t => t.id !== id)), 3500)
   }, [])
 
-  // ── Hooks ─────────────────────────────────────────────────────────────
-  const allItems = [...displayFolders, ...displayFiles]
-  const { selectedItems, selectionOrder, toggleSelect, selectAll, clearSelection } =
+  // T2: BFS recursive fetch
+  useEffect(() => {
+    if (!authed || !checkedFolders.size) {
+      setRightFiles([])
+      setRightLoading(false)
+      return
+    }
+    let cancelled = false
+    setRightLoading(true)
+    fetchAllFilesRecursive([...checkedFolders])
+      .then(files => { if (!cancelled) setRightFiles(files) })
+      .catch(e    => { if (!cancelled) toast(e.message, 'error') })
+      .finally(() => { if (!cancelled) setRightLoading(false) })
+    return () => { cancelled = true }
+  }, [authed, checkedFolders, fetchTick]) // eslint-disable-line react-hooks/exhaustive-deps
+
+  const refetchRoot = useCallback(() => {
+    refetchSidebar()
+    setFetchTick(t => t + 1)
+  }, [refetchSidebar])
+
+  const [showNewFolder, setShowNewFolder] = useState(false)
+  const [showRename,    setShowRename]    = useState(false)
+  const [renameItem,    setRenameItem]    = useState(null)
+  const [showDelete,    setShowDelete]    = useState(false)
+  const [deletePaths,   setDeletePaths]   = useState([])
+  const [showUpload,    setShowUpload]    = useState(false)
+  const [showCopyUrls,  setShowCopyUrls]  = useState(false)
+  const [copyUrlItems,  setCopyUrlItems]  = useState([])
+
+  // T1: only files in the right panel
+  const allItems = rightFiles
+  const loading  = rightLoading
+
+  const { selectedItems, selectionOrder, toggleSelect, toggleItem, selectAll, clearSelection } =
     useSelection(allItems)
+
+  const [multiSelectMode, setMultiSelectMode] = useState(false)
+  const shiftUsedRef = useRef(false)
   const { clipboard, copy, cut, paste, clearClipboard } = useClipboard({
     currentPath: activeFolderPath ?? currentPath,
     clearSelection, refetch: refetchRoot, toast,
@@ -280,38 +323,14 @@ export default function FileExplorer({ path: pathSegments = [] }) {
 
   const cutPaths = clipboard?.op === 'cut' ? new Set(clipboard.paths) : new Set()
 
-  // ── Auth init ────────────────────────────────────────────────────────
   useEffect(() => {
     if (authed) {
       setCurrentPath(startPath)
       setActiveFolderPath(startPath)
-      // Pre-check the starting folder in the sidebar
       if (startPath !== '') setCheckedFolders(new Set([startPath]))
     }
   }, [authed, startPath])
 
-  // ── Multi-folder file loading ─────────────────────────────────────────
-  useEffect(() => {
-    if (!isMultiMode) return
-    setMultiLoading(true)
-    const paths = [...checkedFolders]
-    Promise.all(paths.map(p => fetchFolderFiles(p)))
-      .then(results => {
-        const allFolders = []
-        const allFiles   = []
-        results.forEach((data, i) => {
-          const sourceName = paths[i].split('/').pop() || 'root'
-          ;(data.folders ?? []).forEach(f => allFolders.push({ ...f, folderSource: sourceName }))
-          ;(data.files   ?? []).forEach(f => allFiles.push(  { ...f, folderSource: sourceName }))
-        })
-        setMultiFolderFolders(allFolders)
-        setMultiFolderFiles(allFiles)
-      })
-      .catch(e => toast(e.message, 'error'))
-      .finally(() => setMultiLoading(false))
-  }, [isMultiMode, checkedFolders])
-
-  // ── Navigation ───────────────────────────────────────────────────────
   const navigate = useCallback((path) => {
     if (userRoot && path !== userRoot && !path.startsWith(userRoot + '/')) return
     setCurrentPath(path)
@@ -321,15 +340,10 @@ export default function FileExplorer({ path: pathSegments = [] }) {
     setCheckedFolders(new Set([path]))
   }, [userRoot, clearSelection, clearClipboard])
 
-  // ── Folder sidebar handlers ───────────────────────────────────────────
   const handleFolderOpen = useCallback((path) => {
     setActiveFolderPath(path)
     setCurrentPath(path)
-    setCheckedFolders(prev => {
-      // If opening a folder, clear multi-check and just check this one
-      if (prev.size > 1) return new Set([path])
-      return new Set([path])
-    })
+    setCheckedFolders(new Set([path]))
     clearSelection()
   }, [clearSelection])
 
@@ -338,7 +352,6 @@ export default function FileExplorer({ path: pathSegments = [] }) {
       const next = new Set(prev)
       if (next.has(path)) {
         next.delete(path)
-        // If unchecking the active folder, set active to first remaining
         if (activeFolderPath === path) {
           const remaining = [...next]
           setActiveFolderPath(remaining[0] ?? null)
@@ -346,7 +359,6 @@ export default function FileExplorer({ path: pathSegments = [] }) {
         }
       } else {
         next.add(path)
-        // If this is the first checked folder, make it active
         if (next.size === 1) {
           setActiveFolderPath(path)
           setCurrentPath(path)
@@ -357,19 +369,24 @@ export default function FileExplorer({ path: pathSegments = [] }) {
     clearSelection()
   }, [activeFolderPath, clearSelection])
 
-  const handleFolderUpload = useCallback((path) => {
-    setActiveFolderPath(path)
-    setCurrentPath(path)
-    setShowUpload(true)
-  }, [])
+  const handleSelectAllFolders = useCallback((paths) => {
+    setCheckedFolders(new Set(paths))
+    if (paths.length) {
+      setActiveFolderPath(paths[0])
+      setCurrentPath(paths[0])
+    } else {
+      setActiveFolderPath(null)
+      setCurrentPath(null)
+    }
+    clearSelection()
+  }, [clearSelection])
 
-  // ── Delete ───────────────────────────────────────────────────────────
   const handleDelete = useCallback(async (paths) => {
     try {
       const res = await fetch('/api/files', {
-        method: 'DELETE',
+        method:  'DELETE',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ paths }),
+        body:    JSON.stringify({ paths }),
       })
       if (!res.ok) throw new Error((await res.json()).error)
       clearSelection()
@@ -380,18 +397,19 @@ export default function FileExplorer({ path: pathSegments = [] }) {
     }
   }, [clearSelection, refetchRoot, toast])
 
-  // ── Copy URLs ─────────────────────────────────────────────────────────
   const handleCopyUrls = useCallback(async (items) => {
     if (!items.length) return
     try {
       const paths = items.filter(i => i.tag === 'file').map(i => i.path)
+      if (!paths.length) { toast('Select files to copy URLs', 'info'); return }
+      
       const res = await fetch('/api/files', {
-        method: 'POST',
+        method:  'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ action: 'get-urls', paths }),
+        body:    JSON.stringify({ action: 'get-urls', paths }),
       })
       if (!res.ok) throw new Error((await res.json()).error)
-      const { urls } = await res.json()
+      const { urls } = await res.json();
       setCopyUrlItems(urls.map((url, i) => ({ url, name: paths[i].split('/').pop() })))
       setShowCopyUrls(true)
     } catch (e) {
@@ -399,40 +417,97 @@ export default function FileExplorer({ path: pathSegments = [] }) {
     }
   }, [toast])
 
-  // ── Filter + search ───────────────────────────────────────────────────
+  // Inline Copy Excel (no modal, uses DEFAULT_GROUP_SIZE)
+  const handleInlineCopyExcel = useCallback(async () => {
+    const paths = rightFiles.filter(f => selectedItems.has(f.path)).map(f => f.path)
+    if (!paths.length) { toast('Select files to copy URLs', 'info'); return }
+
+    // Sort by selection order
+    const sortedPaths = selectionOrder?.size
+      ? [...selectionOrder.entries()]
+          .filter(([p]) => paths.includes(p))
+          .sort(([, a], [, b]) => a - b)
+          .map(([p]) => p)
+      : paths
+
+    setCopyingExcel(true)
+    try {
+      const urlRes = await fetch('/api/files', {
+        method:  'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body:    JSON.stringify({ action: 'get-urls', paths: sortedPaths }),
+      })
+      if (!urlRes.ok) throw new Error((await urlRes.json()).error)
+      const { urls } = await urlRes.json()
+
+      const tsvRes = await fetch('/api/urls', {
+        method:  'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body:    JSON.stringify({ items: urls, groupSize: groupSize, sortBy: 'date' }),
+      })
+      if (!tsvRes.ok) throw new Error()
+      const { groups } = await tsvRes.json()
+
+      const header = Array.from({ length: groupSize }).map((_, i) => `Group ${i + 1}`).join('\t')
+      const rows   = groups.map(row =>
+        Array.from({ length: groupSize }).map((_, ci) => row[ci] ?? '').join('\t')
+      )
+      await navigator.clipboard.writeText([header, ...rows].join('\n'))
+      toast('Excel URLs copied!', 'success')
+    } catch (e) {
+      toast(e.message ?? 'Copy failed', 'error')
+    } finally {
+      setCopyingExcel(false)
+    }
+  }, [rightFiles, selectedItems, selectionOrder, toast])
+
+  // Inline Copy List (no modal)
+  const handleInlineCopyList = useCallback(async () => {
+    const paths = rightFiles.filter(f => selectedItems.has(f.path)).map(f => f.path)
+    if (!paths.length) { toast('Select files to copy URLs', 'info'); return }
+
+    const sortedPaths = selectionOrder?.size
+      ? [...selectionOrder.entries()]
+          .filter(([p]) => paths.includes(p))
+          .sort(([, a], [, b]) => a - b)
+          .map(([p]) => p)
+      : paths
+
+    setCopyingList(true)
+    try {
+      const res = await fetch('/api/files', {
+        method:  'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body:    JSON.stringify({ action: 'get-urls', paths: sortedPaths }),
+      })
+      if (!res.ok) throw new Error((await res.json()).error)
+      const { urls } = await res.json()
+      await navigator.clipboard.writeText(urls.join('\n'))
+      toast('URL list copied!', 'success')
+    } catch (e) {
+      toast(e.message ?? 'Copy failed', 'error')
+    } finally {
+      setCopyingList(false)
+    }
+  }, [rightFiles, selectedItems, selectionOrder, toast])
+
+  // Search filter only (no type filter, no sort — table columns handle sort)
   const filteredFiles = useMemo(() => {
-    let files = displayFiles
-    // Type filter
-    if (filter === 'images') {
-      files = files.filter(f => /\.(jpg|jpeg|png|gif|webp|svg|avif|heic|bmp|tiff)$/i.test(f.name))
-    } else if (filter === 'videos') {
-      files = files.filter(f => /\.(mp4|mov|avi|mkv|webm|wmv|m4v|flv|3gp|ogv)$/i.test(f.name))
-    }
-    // Search
-    if (search.trim()) {
-      const q = search.trim().toLowerCase()
-      files = files.filter(f => f.name.toLowerCase().includes(q))
-    }
-    return files
-  }, [displayFiles, filter, search])
-
-  const filteredFolders = useMemo(() => {
-    if (!search.trim()) return displayFolders
+    if (!search.trim()) return rightFiles
     const q = search.trim().toLowerCase()
-    return displayFolders.filter(f => f.name.toLowerCase().includes(q))
-  }, [displayFolders, search])
+    return rightFiles.filter(f => f.name.toLowerCase().includes(q))
+  }, [rightFiles, search])
 
-  // ── Keyboard shortcuts ────────────────────────────────────────────────
   useEffect(() => {
     if (!authed) return
     const onKey = (e) => {
       const tag = document.activeElement?.tagName
       if (tag === 'INPUT' || tag === 'TEXTAREA') return
-      if (e.key === 'Escape')               clearSelection()
-      if (e.ctrlKey && e.key === 'a')       { e.preventDefault(); selectAll() }
+      if (e.key === 'Escape')                               clearSelection()
+      if (e.ctrlKey && e.key === 'a') { e.preventDefault(); selectAll() }
       if (e.ctrlKey && e.key === 'c' && selectedItems.size > 0) copy([...selectedItems])
       if (e.ctrlKey && e.key === 'x' && selectedItems.size > 0) cut([...selectedItems])
-      if (e.ctrlKey && e.key === 'v')       paste()
+      if (e.ctrlKey && e.key === 'v')                       paste()
       if (e.key === 'Delete' && selectedItems.size > 0) {
         setDeletePaths([...selectedItems]); setShowDelete(true)
       }
@@ -445,10 +520,39 @@ export default function FileExplorer({ path: pathSegments = [] }) {
     return () => window.removeEventListener('keydown', onKey)
   }, [authed, selectedItems, allItems, clearSelection, selectAll, copy, cut, paste])
 
-  // ── Upload disabled: only when exactly 1 folder is active ─────────────
+  // Shift key (alone, no click) toggles multi-select mode
+  useEffect(() => {
+    const onMouseDown = (e) => { if (e.shiftKey) shiftUsedRef.current = true }
+    const onKeyDown   = (e) => { if (e.key === 'Shift') shiftUsedRef.current = false }
+    const onKeyUp     = (e) => {
+      if (e.key !== 'Shift') return
+      const tag = document.activeElement?.tagName
+      if (tag === 'INPUT' || tag === 'TEXTAREA') return
+      if (!shiftUsedRef.current) setMultiSelectMode(v => !v)
+    }
+    window.addEventListener('mousedown', onMouseDown)
+    window.addEventListener('keydown',   onKeyDown)
+    window.addEventListener('keyup',     onKeyUp)
+    return () => {
+      window.removeEventListener('mousedown', onMouseDown)
+      window.removeEventListener('keydown',   onKeyDown)
+      window.removeEventListener('keyup',     onKeyUp)
+    }
+  }, [])
+
+  // Row click: multi-select mode → toggle item; normal → single-select
+  const handleRowClick = useCallback((item, e) => {
+    if (multiSelectMode) toggleItem(item.path)
+    else toggleSelect(item.path, e)
+  }, [multiSelectMode, toggleItem, toggleSelect])
+
+  // Checkbox in row: always toggles (additive), regardless of mode
+  const handleCheckboxToggle = useCallback((item) => {
+    toggleItem(item.path)
+  }, [toggleItem])
+
   const uploadDisabled = checkedFolders.size !== 1
 
-  // ── Auth guards ───────────────────────────────────────────────────────
   if (!checked) {
     return (
       <div className="min-h-screen bg-[#0a0a0a] flex items-center justify-center">
@@ -458,13 +562,18 @@ export default function FileExplorer({ path: pathSegments = [] }) {
   }
   if (!authed) return <AuthGate />
 
-  // ── Main render ───────────────────────────────────────────────────────
+  const rowCallbacks = {
+    onRename:  (item)  => { setRenameItem(item); setShowRename(true) },
+    onDelete:  (paths) => { setDeletePaths(paths); setShowDelete(true) },
+    onCopyUrl: (item)  => handleCopyUrls([item]),
+  }
+
   return (
     <div className="relative flex flex-col h-full bg-[#0a0a0a] overflow-hidden">
       <DropZone onDrop={uploadDisabled ? null : uploadFiles} currentPath={activeFolderPath} />
 
-      {/* Context bar: sidebar toggle + path + multi-folder badge */}
-      <div className="flex items-center gap-2 px-3 h-10 border-b border-[#1a1a1a] bg-[#0d0d0d] shrink-0 z-10">
+      {/* Top context bar */}
+      <div className="hidden flex items-center gap-2 px-3 h-10 border-b border-[#1a1a1a] bg-[#0d0d0d] shrink-0 z-10">
         <button
           onClick={() => setSidebarOpen(v => !v)}
           className="p-1.5 rounded-[6px] text-[#6b7280] hover:text-[#f5f5f5] hover:bg-[#1c1c1c] transition-colors"
@@ -473,14 +582,13 @@ export default function FileExplorer({ path: pathSegments = [] }) {
           {sidebarOpen ? <PanelLeftClose size={14} /> : <PanelLeftOpen size={14} />}
         </button>
 
-        {/* Active path breadcrumb */}
         {activeFolderPath != null && (
           <span className="text-xs text-[#6b7280] truncate font-mono">
             {activeFolderPath || '/root'}
           </span>
         )}
 
-        {isMultiMode && (
+        {checkedFolders.size > 1 && (
           <span className="px-2 py-0.5 rounded-full text-[10px] font-semibold bg-[#1e1b4b] text-[#818cf8] border border-[#4f46e5]/30 shrink-0">
             {checkedFolders.size} folders merged
           </span>
@@ -495,58 +603,69 @@ export default function FileExplorer({ path: pathSegments = [] }) {
         </button>
       </div>
 
-      {/* Body: sidebar + right panel */}
+      {/* Body */}
       <div className="flex flex-1 min-h-0 overflow-hidden">
 
-        {/* ── Left sidebar: folder tree ───────────────────────────────── */}
+        {/* Sidebar */}
         {sidebarOpen && (
-          <div className="w-60 shrink-0 border-r border-[#1a1a1a] bg-[#0d0d0d] flex flex-col overflow-hidden">
-            <FolderTree
-              rootFolders={sidebarRootFolders}
-              activeFolderPath={activeFolderPath}
-              checkedFolders={checkedFolders}
-              uploadEnabled={!uploadDisabled}
-              onFolderOpen={handleFolderOpen}
-              onFolderCheck={handleFolderCheck}
-              onFolderUpload={handleFolderUpload}
-              onNewRootFolder={() => setShowNewFolder(true)}
-              onRename={(folder) => { setRenameItem(folder); setShowRename(true) }}
-              onDelete={(folder) => { setDeletePaths([folder.path]); setShowDelete(true) }}
-              refetchRoot={refetchRoot}
-              toast={toast}
+          <>
+            <div
+              style={{ width: sidebarWidth, minWidth: 180, maxWidth: 680 }}
+              className="shrink-0 bg-[#0d0d0d] flex flex-col overflow-hidden"
+            >
+              <FolderTree
+                rootFolders={sidebarRootFolders}
+                activeFolderPath={activeFolderPath}
+                checkedFolders={checkedFolders}
+                onFolderOpen={handleFolderOpen}
+                onFolderCheck={handleFolderCheck}
+                onSelectAllFolders={handleSelectAllFolders}
+                onNewRootFolder={() => setShowNewFolder(true)}
+                onRename={(folder) => { setRenameItem(folder); setShowRename(true) }}
+                onDelete={(folder) => { setDeletePaths([folder.path]); setShowDelete(true) }}
+                refetchRoot={refetchRoot}
+                toast={toast}
+              />
+            </div>
+
+            {/* Drag-to-resize handle */}
+            <div
+              onMouseDown={handleResizeStart}
+              className="w-1 shrink-0 bg-[#1a1a1a] hover:bg-[#4f46e5] active:bg-[#4f46e5] cursor-col-resize transition-colors"
+              title="Drag to resize"
             />
-          </div>
+          </>
         )}
 
-        {/* ── Right panel: toolbar + files ────────────────────────────── */}
+        {/* Right panel */}
         <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
+
+          {/* Single-row toolbar */}
           <RightToolbar
-            view={view}
-            sortBy={sortBy}
-            filter={filter}
             search={search}
-            onViewChange={setView}
-            onSortChange={setSortBy}
-            onFilterChange={setFilter}
             onSearchChange={setSearch}
-            onSelectAll={selectAll}
-            onNewFolder={() => setShowNewFolder(true)}
             onUpload={() => setShowUpload(true)}
             uploadDisabled={uploadDisabled}
             selectedCount={selectedItems.size}
             fileCount={filteredFiles.length}
+            onDeleteSelected={() => { setDeletePaths([...selectedItems]); setShowDelete(true) }}
+            onCopyExcel={handleInlineCopyExcel}
+            copyingExcel={copyingExcel}
+            onCopyList={handleInlineCopyList}
+            copyingList={copyingList}
+            multiSelectMode={multiSelectMode}
+            onToggleMultiSelect={() => setMultiSelectMode(v => !v)}
+            onGroupSizeChange={(size) => setGroupSize(size)}
+            groupSize={groupSize}
           />
 
-          {/* Selection bar */}
           <div className="px-4 pt-3">
             <SelectionBar
               selectedItems={selectedItems}
               clipboard={clipboard}
               currentPath={activeFolderPath ?? currentPath}
               allItems={allItems}
-              onCopy={copy}
-              onCut={cut}
-              onPaste={paste}
+              onCopy={copy} onCut={cut} onPaste={paste}
               onRename={() => {
                 const item = allItems.find(i => i.path === [...selectedItems][0])
                 if (item) { setRenameItem(item); setShowRename(true) }
@@ -560,7 +679,6 @@ export default function FileExplorer({ path: pathSegments = [] }) {
             />
           </div>
 
-          {/* File area */}
           <div className="flex-1 overflow-y-auto px-4 py-4">
             {loading ? (
               <div className="flex items-center justify-center py-32">
@@ -568,27 +686,31 @@ export default function FileExplorer({ path: pathSegments = [] }) {
               </div>
             ) : view === 'grid' ? (
               <FileGrid
-                folders={filteredFolders}
+                folders={[]}
                 files={filteredFiles}
                 selectedItems={selectedItems}
                 selectionOrder={selectionOrder}
                 cutPaths={cutPaths}
-                sortBy={sortBy}
+                sortBy="name"
                 onSelect={(item, e) => toggleSelect(item.path, e)}
                 onNavigate={navigate}
                 onContextMenu={openMenu}
               />
             ) : (
               <FileList
-                folders={filteredFolders}
+                folders={[]}
                 files={filteredFiles}
                 selectedItems={selectedItems}
                 selectionOrder={selectionOrder}
                 cutPaths={cutPaths}
-                sortBy={sortBy}
-                onSelect={(item, e) => toggleSelect(item.path, e)}
+                sortBy="name"
+                onRowClick={handleRowClick}
+                onToggleItem={handleCheckboxToggle}
+                onSelectAll={selectAll}
+                onClearSelection={clearSelection}
                 onNavigate={navigate}
                 onContextMenu={openMenu}
+                {...rowCallbacks}
               />
             )}
           </div>
@@ -600,9 +722,7 @@ export default function FileExplorer({ path: pathSegments = [] }) {
         menu={ctxMenu} clipboard={clipboard} onClose={closeMenu}
         onOpen={(item) => navigate(item.path)}
         onRename={(item) => { setRenameItem(item); setShowRename(true) }}
-        onCopy={copy}
-        onCut={cut}
-        onPaste={paste}
+        onCopy={copy} onCut={cut} onPaste={paste}
         onCopyUrl={(item) => handleCopyUrls([item])}
         onDelete={(paths) => { setDeletePaths(paths); setShowDelete(true) }}
       />

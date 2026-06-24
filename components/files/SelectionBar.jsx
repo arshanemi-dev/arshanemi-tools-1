@@ -34,7 +34,7 @@ export default function SelectionBar({
         animate={{ opacity: 1, y: 0 }}
         exit={{ opacity: 0, y: 12 }}
         transition={{ duration: 0.18, ease: [0.16, 1, 0.3, 1] }}
-        className="flex items-center gap-2 flex-wrap px-4 py-2.5 bg-[#1e1b4b] border border-[#4f46e5]/40 rounded-[10px] shadow-lg shadow-[#4f46e5]/10"
+        className="hidden flex items-center gap-2 flex-wrap px-4 py-2.5 bg-[#1e1b4b] border border-[#4f46e5]/40 rounded-[10px] shadow-lg shadow-[#4f46e5]/10"
       >
         {/* Badge */}
         <button
