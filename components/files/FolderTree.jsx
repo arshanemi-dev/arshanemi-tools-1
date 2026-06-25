@@ -1,15 +1,14 @@
 'use client'
-// FolderTree — last updated 2026-06-24
-// Tasks covered: T1 search+select-all+refresh, T2 auto-expand on open,
-//                T3 upload removed / ctx-menu rename+delete only,
-//                T4 auto-name new_folder_N, T5 force-refetch fix,
-//                T6 RootFoldersList component
+// FolderTree — last updated 2026-06-25
+// T1: No Plus in row hover; "New Folder" button always at BOTTOM of open folder
+// T2: Pencil + Trash inline (no three-dots); inline rename — no modal
+// T5: Beautiful "Create First Folder" card in empty state
 
 import { useState, useEffect, useRef, useCallback, useMemo } from 'react'
 import {
   Folder, FolderOpen, ChevronRight, ChevronDown,
-  Plus, MoreVertical, Pencil, Trash2,
-  FolderPlus, Loader2, X, Search, RefreshCw, CheckSquare,
+  Plus, Pencil, Trash2,
+  Loader2, X, Search, RefreshCw, CheckSquare, Check,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { motion, AnimatePresence } from 'framer-motion'
@@ -26,56 +25,11 @@ function getNextFolderName(existingNames = []) {
   return `new_folder_${n}`
 }
 
-/* ─── Folder Context Menu: Rename + Delete only (Task 3) ─────────── */
-function FolderCtxMenu({ folder, position, onClose, onRename, onDelete }) {
-  const ref = useRef(null)
-
-  useEffect(() => {
-    const handle = e => {
-      if (ref.current && !ref.current.contains(e.target)) onClose()
-    }
-    setTimeout(() => window.addEventListener('mousedown', handle), 0)
-    return () => window.removeEventListener('mousedown', handle)
-  }, [onClose])
-
-  if (!position) return null
-  const x = Math.min(position.x, window.innerWidth  - 170)
-  const y = Math.min(position.y, window.innerHeight - 120)
-
-  const Item = ({ icon: Icon, label, onClick, danger }) => (
-    <button
-      onClick={() => { onClick(); onClose() }}
-      className={cn(
-        'flex items-center gap-2 w-full px-3 py-1.5 text-xs rounded-[6px] transition-colors cursor-pointer',
-        danger
-          ? 'text-[#ef4444] hover:bg-[#450a0a]'
-          : 'text-[#a3a3a3] hover:text-[#f5f5f5] hover:bg-[#1c1c1c]'
-      )}
-    >
-      <Icon size={12} className="shrink-0" />
-      {label}
-    </button>
-  )
-
-  return (
-    <div
-      ref={ref}
-      style={{ position: 'fixed', left: x, top: y, zIndex: 2000 }}
-      className="w-38 bg-[#161616] border border-[#333333] rounded-[10px] shadow-2xl shadow-black/70 p-1 animate-fadeIn"
-      onClick={e => e.stopPropagation()}
-    >
-      <Item icon={Pencil} label="Rename"        onClick={() => onRename(folder)} />
-      <div className="my-1 mx-2 h-px bg-[#262626]" />
-      <Item icon={Trash2} label="Delete Folder" onClick={() => onDelete(folder)} danger />
-    </div>
-  )
-}
-
-/* ─── Inline Create Folder Form (Task 4: default name) ───────────── */
+/* ─── Inline Create Folder Form ───────────────────────────────────── */
 function InlineNewFolder({ parentPath, defaultName, onCreated, onCancel }) {
   const [name, setName] = useState(defaultName || '')
-  const [busy, setBusy]  = useState(false)
-  const inputRef          = useRef(null)
+  const [busy, setBusy] = useState(false)
+  const inputRef = useRef(null)
 
   useEffect(() => {
     inputRef.current?.focus()
@@ -103,27 +57,31 @@ function InlineNewFolder({ parentPath, defaultName, onCreated, onCancel }) {
   }
 
   return (
-    <form onSubmit={submit} className="flex items-center gap-1 pr-2 py-1">
-      <Folder size={11} className="text-[#4f46e5] shrink-0 ml-1" fill="rgba(79,70,229,0.15)" />
+    <form
+      onSubmit={submit}
+      className="flex items-center gap-1.5 px-2 py-1.5 mx-0.5 my-0.5 bg-[#0f0f1a] rounded-[8px] border border-[#4f46e5]/30"
+      onClick={e => e.stopPropagation()}
+    >
+      <Folder size={12} className="text-[#4f46e5] shrink-0" fill="rgba(79,70,229,0.18)" />
       <input
         ref={inputRef}
         value={name}
         onChange={e => setName(e.target.value)}
         onKeyDown={e => { if (e.key === 'Escape') onCancel() }}
         placeholder="Folder name…"
-        className="flex-1 min-w-0 px-2 py-1 text-xs bg-[#0a0a0a] border border-[#4f46e5] rounded-[6px] text-[#f5f5f5] placeholder-[#6b7280] focus:outline-none"
+        className="flex-1 min-w-0 px-2 py-0.5 text-xs bg-[#0a0a0a] border border-[#4f46e5]/50 rounded-[5px] text-[#f5f5f5] placeholder-[#6b7280] focus:outline-none focus:border-[#4f46e5]"
       />
       <button
         type="submit"
         disabled={busy || !name.trim()}
-        className="w-6 h-6 flex items-center justify-center rounded bg-[#4f46e5] text-white disabled:opacity-40 shrink-0"
+        className="w-6 h-6 flex items-center justify-center rounded-[5px] bg-[#4f46e5] hover:bg-[#4338ca] text-white disabled:opacity-40 shrink-0 transition-colors"
       >
-        {busy ? <Loader2 size={10} className="animate-spin" /> : <Plus size={10} />}
+        {busy ? <Loader2 size={10} className="animate-spin" /> : <Check size={10} />}
       </button>
       <button
         type="button"
         onClick={onCancel}
-        className="w-6 h-6 flex items-center justify-center rounded text-[#6b7280] hover:text-[#f5f5f5] shrink-0"
+        className="w-6 h-6 flex items-center justify-center rounded-[5px] text-[#6b7280] hover:text-[#f5f5f5] hover:bg-[#262626] shrink-0 transition-colors"
       >
         <X size={10} />
       </button>
@@ -131,11 +89,78 @@ function InlineNewFolder({ parentPath, defaultName, onCreated, onCancel }) {
   )
 }
 
-/* ─── Single Folder Row (Task 3: no Upload button) ───────────────── */
+/* ─── Inline Folder Rename Row (T2) ───────────────────────────────── */
+function InlineFolderRename({ level, renameName, onNameChange, onSave, onCancel, busy }) {
+  const inputRef = useRef(null)
+
+  useEffect(() => {
+    inputRef.current?.focus()
+    inputRef.current?.select()
+  }, [])
+
+  return (
+    <form
+      onSubmit={e => { e.preventDefault(); onSave() }}
+      className="flex items-center gap-1.5 pr-2 py-[4px] rounded-[7px] bg-[#1a1730] border border-[#4f46e5]/30"
+      style={{ paddingLeft: `${6 + level * 14}px` }}
+      onClick={e => e.stopPropagation()}
+    >
+      {/* arrow spacer */}
+      <span className="w-4 h-4 shrink-0" />
+      {/* checkbox spacer */}
+      <span className="w-3.5 h-3.5 shrink-0" />
+      <FolderOpen size={13} className="text-[#818cf8] shrink-0" fill="rgba(129,140,248,0.2)" />
+      <input
+        ref={inputRef}
+        value={renameName}
+        onChange={e => onNameChange(e.target.value)}
+        onKeyDown={e => {
+          if (e.key === 'Escape') { e.preventDefault(); onCancel() }
+          if (e.key === 'Enter')  { e.preventDefault(); onSave() }
+        }}
+        className="flex-1 min-w-0 px-2 py-0.5 text-xs bg-[#0a0a0a] border border-[#4f46e5] rounded-[5px] text-[#f5f5f5] placeholder-[#6b7280] focus:outline-none"
+      />
+      <button
+        type="submit"
+        disabled={busy || !renameName.trim()}
+        className="w-5 h-5 flex items-center justify-center rounded-[4px] bg-[#4f46e5] text-white disabled:opacity-40 shrink-0 hover:bg-[#4338ca] transition-colors"
+      >
+        {busy ? <Loader2 size={9} className="animate-spin" /> : <Check size={9} />}
+      </button>
+      <button
+        type="button"
+        onClick={onCancel}
+        className="w-5 h-5 flex items-center justify-center rounded-[4px] text-[#6b7280] hover:text-[#f5f5f5] hover:bg-[#262626] shrink-0 transition-colors"
+      >
+        <X size={9} />
+      </button>
+    </form>
+  )
+}
+
+/* ─── "New Folder" bottom button (T1) ────────────────────────────── */
+function NewFolderBottomBtn({ level, onClick }) {
+  return (
+    <button
+      onClick={onClick}
+      style={{ paddingLeft: `${20 + level * 14}px` }}
+      className="group/nbtn flex items-center gap-1.5 w-full py-1.5 pr-3 text-[10px] text-[#3a3a3a] hover:text-[#818cf8] transition-all rounded-[6px] hover:bg-[#0f0f1a]"
+    >
+      <span className="w-4 h-4 flex items-center justify-center rounded-[4px] border border-[#252525] group-hover/nbtn:border-[#4f46e5]/50 group-hover/nbtn:bg-[#1e1b4b]/60 transition-all shrink-0">
+        <Plus size={8} />
+      </span>
+      New Folder
+    </button>
+  )
+}
+
+/* ─── Single Folder Row (T1: no Plus hover; T2: Pencil+Trash direct) */
 function FolderRow({
   folder, level,
   isChecked, isExpanded, isActive, isDragOver, isLoading,
-  onCheck, onExpand, onOpen, onMoreOptions, onNewSub,
+  isFilesLoading,
+  onCheck, onExpand, onOpen,
+  onInlineRename, onDelete,
   onDragStart, onDragOver, onDragLeave, onDrop,
 }) {
   return (
@@ -148,9 +173,10 @@ function FolderRow({
       className={cn(
         'group/row flex items-center gap-1.5 pr-2 py-[5px] rounded-[7px] cursor-pointer select-none',
         'transition-all duration-100 relative',
-        isActive  && !isDragOver && 'bg-[#1e1b4b]',
-        isDragOver && 'bg-[#4f46e5]/20 border border-dashed border-[#4f46e5]/60',
-        !isActive && !isDragOver && 'hover:bg-[#1c1c1c]',
+        isActive      && !isDragOver && 'bg-[#1e1b4b]',
+        isDragOver    && 'bg-[#4f46e5]/20 border border-dashed border-[#4f46e5]/60',
+        !isActive     && !isDragOver && 'hover:bg-[#1c1c1c]',
+        isFilesLoading && 'animate-pulse',
       )}
       style={{ paddingLeft: `${6 + level * 14}px` }}
     >
@@ -162,7 +188,7 @@ function FolderRow({
         {isLoading
           ? <Loader2 size={10} className="animate-spin text-[#4f46e5]" />
           : isExpanded
-          ? <ChevronDown size={11} />
+          ? <ChevronDown  size={11} />
           : <ChevronRight size={11} />
         }
       </button>
@@ -176,15 +202,18 @@ function FolderRow({
         className="w-3.5 h-3.5 accent-[#4f46e5] shrink-0 cursor-pointer"
       />
 
-      {/* Folder icon + name (Task 2: clicking opens AND expands) */}
+      {/* Folder icon + name — spinner replaces icon while files load */}
       <button
         onClick={() => onOpen(folder.path)}
         className="flex items-center gap-1.5 flex-1 min-w-0 py-0.5 text-left"
       >
-        {isExpanded
-          ? <FolderOpen size={13} className={isActive ? 'text-[#818cf8]' : 'text-[#4f46e5]'} fill={isActive ? 'rgba(129,140,248,0.2)' : 'rgba(79,70,229,0.12)'} />
-          : <Folder     size={13} className={isActive ? 'text-[#818cf8]' : 'text-[#4f46e5]'} fill={isActive ? 'rgba(129,140,248,0.2)' : 'rgba(79,70,229,0.12)'} />
-        }
+        {isFilesLoading ? (
+          <Loader2 size={13} className="text-[#4f46e5] animate-spin shrink-0" />
+        ) : isExpanded ? (
+          <FolderOpen size={13} className={isActive ? 'text-[#818cf8]' : 'text-[#4f46e5]'} fill={isActive ? 'rgba(129,140,248,0.2)' : 'rgba(79,70,229,0.12)'} />
+        ) : (
+          <Folder size={13} className={isActive ? 'text-[#818cf8]' : 'text-[#4f46e5]'} fill={isActive ? 'rgba(129,140,248,0.2)' : 'rgba(79,70,229,0.12)'} />
+        )}
         <span className={cn(
           'text-xs truncate',
           isActive ? 'text-[#c7d2fe] font-medium' : 'text-[#a3a3a3] group-hover/row:text-[#f5f5f5]'
@@ -193,21 +222,21 @@ function FolderRow({
         </span>
       </button>
 
-      {/* Hover actions: New subfolder + More options only (Task 3: removed Upload) */}
+      {/* Hover actions: Pencil (rename) + Trash (delete) — no three-dots, no Plus (T2) */}
       <div className="flex items-center gap-0.5 shrink-0 opacity-0 group-hover/row:opacity-100 transition-opacity">
         <button
-          onClick={e => { e.stopPropagation(); onNewSub(folder.path) }}
-          title="New subfolder"
-          className="w-5 h-5 flex items-center justify-center rounded text-[#6b7280] hover:text-[#f5f5f5] hover:bg-[#262626]"
+          onClick={e => { e.stopPropagation(); onInlineRename(folder) }}
+          title="Rename"
+          className="w-5 h-5 flex items-center justify-center rounded-[4px] text-[#6b7280] hover:text-[#818cf8] hover:bg-[#1e1b4b] transition-colors"
         >
-          <Plus size={10} />
+          <Pencil size={10} />
         </button>
         <button
-          onClick={e => { e.stopPropagation(); onMoreOptions(e, folder) }}
-          title="More options"
-          className="w-5 h-5 flex items-center justify-center rounded text-[#6b7280] hover:text-[#f5f5f5] hover:bg-[#262626]"
+          onClick={e => { e.stopPropagation(); onDelete(folder) }}
+          title="Delete folder"
+          className="w-5 h-5 flex items-center justify-center rounded-[4px] text-[#6b7280] hover:text-[#ef4444] hover:bg-[#450a0a] transition-colors"
         >
-          <MoreVertical size={10} />
+          <Trash2 size={10} />
         </button>
       </div>
 
@@ -223,29 +252,47 @@ function FolderRow({
 function TreeNode({
   folder, level, state, dragState,
   newFolderPath, newFolderDefaultName,
-  onExpand, onCheck, onOpen, onMoreOptions, onNewSub,
+  renamingFolderPath, renamingFolderName, renamingBusy,
+  onExpand, onCheck, onOpen,
+  onInlineRename, onDelete, onNewSub,
   onNewFolderCreated, onNewFolderCancel,
+  onRenameNameChange, onSaveRename, onCancelRename,
   onDragStart, onDragOver, onDragLeave, onDrop,
 }) {
-  const isExpanded  = state.expanded.has(folder.path)
-  const isChecked   = state.checked.has(folder.path)
-  const isActive    = state.active === folder.path
-  const isDragOver  = dragState.dragOverPath === folder.path && dragState.draggedPath !== folder.path
-  const isLoading   = state.loadingPaths.has(folder.path)
-  const children    = state.subfolderMap.get(folder.path) ?? []
-  const showNewHere = newFolderPath === folder.path
+  const isExpanded    = state.expanded.has(folder.path)
+  const isChecked     = state.checked.has(folder.path)
+  const isActive      = state.active === folder.path
+  const isDragOver    = dragState.dragOverPath === folder.path && dragState.draggedPath !== folder.path
+  const isLoading     = state.loadingPaths.has(folder.path)
+  const isFilesLoading = state.filesLoading && isChecked   // right-panel files are loading for this folder
+  const isRenaming    = renamingFolderPath === folder.path
+  const children      = state.subfolderMap.get(folder.path) ?? []
+  const showNewHere   = newFolderPath === folder.path
 
   return (
     <div>
-      <FolderRow
-        folder={folder} level={level}
-        isChecked={isChecked} isExpanded={isExpanded}
-        isActive={isActive} isDragOver={isDragOver} isLoading={isLoading}
-        onCheck={onCheck} onExpand={onExpand} onOpen={onOpen}
-        onMoreOptions={onMoreOptions} onNewSub={onNewSub}
-        onDragStart={onDragStart} onDragOver={onDragOver}
-        onDragLeave={onDragLeave} onDrop={onDrop}
-      />
+      {/* T2: show inline rename form in place of row */}
+      {isRenaming ? (
+        <InlineFolderRename
+          level={level}
+          renameName={renamingFolderName}
+          onNameChange={onRenameNameChange}
+          onSave={onSaveRename}
+          onCancel={onCancelRename}
+          busy={renamingBusy}
+        />
+      ) : (
+        <FolderRow
+          folder={folder} level={level}
+          isChecked={isChecked} isExpanded={isExpanded}
+          isActive={isActive} isDragOver={isDragOver} isLoading={isLoading}
+          isFilesLoading={isFilesLoading}
+          onCheck={onCheck} onExpand={onExpand} onOpen={onOpen}
+          onInlineRename={onInlineRename} onDelete={onDelete}
+          onDragStart={onDragStart} onDragOver={onDragOver}
+          onDragLeave={onDragLeave} onDrop={onDrop}
+        />
+      )}
 
       <AnimatePresence>
         {isExpanded && (
@@ -256,18 +303,6 @@ function TreeNode({
             transition={{ duration: 0.18, ease: [0.16, 1, 0.3, 1] }}
             style={{ overflow: 'hidden' }}
           >
-            {/* New folder form at top of children list (Task 4) */}
-            {showNewHere && (
-              <div style={{ paddingLeft: `${6 + (level + 1) * 14}px` }}>
-                <InlineNewFolder
-                  parentPath={folder.path}
-                  defaultName={newFolderDefaultName}
-                  onCreated={onNewFolderCreated}
-                  onCancel={onNewFolderCancel}
-                />
-              </div>
-            )}
-
             {children.map(child => (
               <TreeNode
                 key={child.path}
@@ -275,24 +310,38 @@ function TreeNode({
                 state={state} dragState={dragState}
                 newFolderPath={newFolderPath}
                 newFolderDefaultName={newFolderDefaultName}
+                renamingFolderPath={renamingFolderPath}
+                renamingFolderName={renamingFolderName}
+                renamingBusy={renamingBusy}
                 onExpand={onExpand} onCheck={onCheck} onOpen={onOpen}
-                onMoreOptions={onMoreOptions} onNewSub={onNewSub}
+                onInlineRename={onInlineRename} onDelete={onDelete} onNewSub={onNewSub}
                 onNewFolderCreated={onNewFolderCreated}
                 onNewFolderCancel={onNewFolderCancel}
+                onRenameNameChange={onRenameNameChange}
+                onSaveRename={onSaveRename}
+                onCancelRename={onCancelRename}
                 onDragStart={onDragStart} onDragOver={onDragOver}
                 onDragLeave={onDragLeave} onDrop={onDrop}
               />
             ))}
 
-            {/* Empty subfolder prompt (Task 4) */}
-            {!isLoading && children.length === 0 && !showNewHere && (
-              <button
-                onClick={() => onNewSub(folder.path)}
-                style={{ paddingLeft: `${6 + (level + 1) * 14}px` }}
-                className="flex items-center gap-1.5 w-full py-1.5 text-[10px] text-[#6b7280] hover:text-[#4f46e5] transition-colors"
-              >
-                <Plus size={10} /> New folder
-              </button>
+            {/* T1: New Folder always at bottom when open */}
+            {showNewHere ? (
+              <div style={{ paddingLeft: `${(level + 1) * 14}px` }} className="px-1 py-0.5">
+                <InlineNewFolder
+                  parentPath={folder.path}
+                  defaultName={newFolderDefaultName}
+                  onCreated={onNewFolderCreated}
+                  onCancel={onNewFolderCancel}
+                />
+              </div>
+            ) : (
+              !isLoading && (
+                <NewFolderBottomBtn
+                  level={level + 1}
+                  onClick={() => onNewSub(folder.path)}
+                />
+              )
             )}
           </motion.div>
         )}
@@ -301,25 +350,59 @@ function TreeNode({
   )
 }
 
-/* ─── Root Folders List component — created 2026-06-24 ───────────── */
+/* ─── Root-level "New Folder" button (T2) ────────────────────────── */
+function RootNewFolderButton({ onClick }) {
+  return (
+    <button
+      onClick={onClick}
+      className="group/rnf flex items-center gap-2 w-full px-3 py-2 rounded-[8px] border border-dashed border-[#2a2a2a] hover:border-[#4f46e5]/40 text-[#444] hover:text-[#818cf8] hover:bg-[#0f0f1a] transition-all text-[11px] font-medium"
+    >
+      <span className="w-5 h-5 flex items-center justify-center rounded-[5px] border border-[#2a2a2a] group-hover/rnf:border-[#4f46e5]/50 group-hover/rnf:bg-[#1e1b4b]/60 transition-all shrink-0">
+        <Plus size={10} />
+      </span>
+      New Folder
+    </button>
+  )
+}
+
+/* ─── Root Folders List ───────────────────────────────────────────── */
 function RootFoldersList({
   rootFolders, state, dragState,
   newFolderPath, newFolderDefaultName,
-  onExpand, onCheck, onOpen, onMoreOptions, onNewSub,
+  renamingFolderPath, renamingFolderName, renamingBusy,
+  onExpand, onCheck, onOpen,
+  onInlineRename, onDelete, onNewSub,
   onNewFolderCreated, onNewFolderCancel, onNewRootFolder,
+  onRenameNameChange, onSaveRename, onCancelRename,
   onDragStart, onDragOver, onDragLeave, onDrop,
 }) {
+  // T5: beautiful empty state with root-level New Folder at bottom
   if (rootFolders.length === 0) {
     return (
-      <div className="flex flex-col items-center justify-center py-12 text-center px-4">
-        <Folder size={28} className="text-[#333333] mb-3" />
-        <p className="text-xs text-[#6b7280]">No folders yet</p>
-        <button
-          onClick={onNewRootFolder}
-          className="mt-3 text-xs text-[#4f46e5] hover:text-[#818cf8] transition-colors"
-        >
-          + Create first folder
-        </button>
+      <div className="flex flex-col">
+        <div className="flex flex-col items-center justify-center py-8 px-5 text-center">
+          <div className="w-14 h-14 rounded-[16px] bg-gradient-to-br from-[#1e1b4b] to-[#0f0f1a] border border-[#4f46e5]/20 flex items-center justify-center mb-3 shadow-lg shadow-[#4f46e5]/10">
+            <Folder size={26} className="text-[#4f46e5]" fill="rgba(79,70,229,0.2)" />
+          </div>
+          <p className="text-xs font-semibold text-[#a3a3a3] mb-1">No folders yet</p>
+          <p className="text-[10px] text-[#444] leading-relaxed">
+            Use the button below to create<br />your first folder
+          </p>
+        </div>
+
+        {/* Root-level new-folder form or button — at bottom even when empty */}
+        <div className="px-2 pb-2">
+          {newFolderPath === '' ? (
+            <InlineNewFolder
+              parentPath=""
+              defaultName={newFolderDefaultName}
+              onCreated={onNewFolderCreated}
+              onCancel={onNewFolderCancel}
+            />
+          ) : (
+            <RootNewFolderButton onClick={onNewRootFolder} />
+          )}
+        </div>
       </div>
     )
   }
@@ -333,26 +416,34 @@ function RootFoldersList({
           state={state} dragState={dragState}
           newFolderPath={newFolderPath}
           newFolderDefaultName={newFolderDefaultName}
+          renamingFolderPath={renamingFolderPath}
+          renamingFolderName={renamingFolderName}
+          renamingBusy={renamingBusy}
           onExpand={onExpand} onCheck={onCheck} onOpen={onOpen}
-          onMoreOptions={onMoreOptions} onNewSub={onNewSub}
+          onInlineRename={onInlineRename} onDelete={onDelete} onNewSub={onNewSub}
           onNewFolderCreated={onNewFolderCreated}
           onNewFolderCancel={onNewFolderCancel}
+          onRenameNameChange={onRenameNameChange}
+          onSaveRename={onSaveRename}
+          onCancelRename={onCancelRename}
           onDragStart={onDragStart} onDragOver={onDragOver}
           onDragLeave={onDragLeave} onDrop={onDrop}
         />
       ))}
 
-      {/* Root-level new-folder form */}
-      {newFolderPath === '' && (
-        <div className="px-1">
+      {/* Root-level: always show New Folder button or inline form at bottom (T2) */}
+      <div className="px-1.5 pt-1 pb-1">
+        {newFolderPath === '' ? (
           <InlineNewFolder
             parentPath=""
             defaultName={newFolderDefaultName}
             onCreated={onNewFolderCreated}
             onCancel={onNewFolderCancel}
           />
-        </div>
-      )}
+        ) : (
+          <RootNewFolderButton onClick={onNewRootFolder} />
+        )}
+      </div>
     </>
   )
 }
@@ -362,12 +453,14 @@ export default function FolderTree({
   rootFolders,
   activeFolderPath,
   checkedFolders,
+  filesLoading,
   onFolderOpen,
   onFolderCheck,
   onSelectAllFolders,
   onNewRootFolder,
   onRename,
   onDelete,
+  onDeletePaths,
   refetchRoot,
   toast,
 }) {
@@ -378,10 +471,13 @@ export default function FolderTree({
   const [dragOverPath,         setDragOverPath]         = useState(null)
   const [newFolderPath,        setNewFolderPath]        = useState(null)
   const [newFolderDefaultName, setNewFolderDefaultName] = useState('')
-  const [ctxMenu,              setCtxMenu]              = useState(null)
   const [search,               setSearch]               = useState('')
 
-  // Ref keeps latest subfolderMap available in callbacks — avoids stale-closure (Task 5)
+  // T2: inline folder rename state
+  const [renamingFolderPath, setRenamingFolderPath] = useState(null)
+  const [renamingFolderName, setRenamingFolderName] = useState('')
+  const [renamingBusy,       setRenamingBusy]       = useState(false)
+
   const subfolderMapRef = useRef(subfolderMap)
   useEffect(() => { subfolderMapRef.current = subfolderMap }, [subfolderMap])
 
@@ -392,7 +488,7 @@ export default function FolderTree({
     return rootFolders.filter(f => f.name.toLowerCase().includes(q))
   }, [rootFolders, search])
 
-  // ── Load subfolders (Task 5: force flag bypasses cache) ──────────
+  // ── Load subfolders ──────────────────────────────────────────────
   const loadSubfolders = useCallback(async (path, force = false) => {
     if (!force && subfolderMapRef.current.has(path)) return
     setLoadingPaths(prev => new Set([...prev, path]))
@@ -431,7 +527,6 @@ export default function FolderTree({
     })
   }, [loadSubfolders])
 
-  // Task 2: clicking a folder opens it AND expands the tree
   const handleOpen = useCallback((path) => {
     onFolderOpen(path)
     setExpanded(prev => {
@@ -463,7 +558,6 @@ export default function FolderTree({
       })
       if (!res.ok) throw new Error((await res.json()).error)
       const parentSrc = src.split('/').slice(0, -1).join('/') || ''
-      // Invalidate cache for affected paths and force-reload (Task 5)
       setSubfolderMap(prev => {
         const next = new Map(prev)
         next.delete(parentSrc)
@@ -480,9 +574,8 @@ export default function FolderTree({
     }
   }, [draggedPath, loadSubfolders, refetchRoot, toast])
 
-  // ── New subfolder (Task 4: auto-name) ────────────────────────────
+  // ── New subfolder (T1: opens form at bottom) ─────────────────────
   const handleNewSub = useCallback((parentPath) => {
-    // Expand so the form appears inside the folder
     setExpanded(prev => {
       if (prev.has(parentPath)) return prev
       const next = new Set(prev)
@@ -490,7 +583,6 @@ export default function FolderTree({
       loadSubfolders(parentPath)
       return next
     })
-    // Compute default name from existing siblings
     const siblings    = subfolderMapRef.current.get(parentPath) ?? []
     const defaultName = getNextFolderName(siblings.map(f => f.name))
     setNewFolderDefaultName(defaultName)
@@ -503,12 +595,10 @@ export default function FolderTree({
     setNewFolderPath('')
   }, [rootFolders])
 
-  // Task 5: after creation force-reload parent's children immediately
   const handleNewFolderCreated = useCallback(() => {
     const parent = newFolderPath
     setNewFolderPath(null)
     setNewFolderDefaultName('')
-    // Clear cache entry then force-reload
     setSubfolderMap(prev => {
       const next = new Map(prev)
       next.delete(parent)
@@ -520,39 +610,97 @@ export default function FolderTree({
     toast?.('Folder created', 'success')
   }, [newFolderPath, loadSubfolders, refetchRoot, toast])
 
-  // ── Select-all / deselect-all toggle ─────────────────────────────
+  // ── T2: Inline folder rename ─────────────────────────────────────
+  const doSaveRename = useCallback(async (path, name) => {
+    const trimmed = name.trim()
+    // find original name
+    const allFolders = [
+      ...rootFolders,
+      ...[...subfolderMapRef.current.values()].flat(),
+    ]
+    const original = allFolders.find(f => f.path === path)
+    if (!trimmed || (original && trimmed === original.name)) {
+      setRenamingFolderPath(null)
+      setRenamingFolderName('')
+      return
+    }
+    setRenamingBusy(true)
+    try {
+      const res = await fetch('/api/files', {
+        method:  'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body:    JSON.stringify({ path, newName: trimmed }),
+      })
+      if (!res.ok) throw new Error((await res.json()).error)
+      setRenamingFolderPath(null)
+      setRenamingFolderName('')
+      // Invalidate parent cache
+      const parentPath = path.split('/').slice(0, -1).join('/') || ''
+      setSubfolderMap(prev => {
+        const next = new Map(prev)
+        next.delete(parentPath)
+        subfolderMapRef.current = next
+        return next
+      })
+      refetchRoot()
+      toast?.('Renamed', 'success')
+    } catch (err) {
+      toast?.(err.message || 'Rename failed', 'error')
+      setRenamingFolderPath(null)
+      setRenamingFolderName('')
+    } finally {
+      setRenamingBusy(false)
+    }
+  }, [rootFolders, refetchRoot, toast])
+
+  const handleInlineRename = useCallback(async (folder) => {
+    // Auto-save any currently open rename first
+    if (renamingFolderPath && renamingFolderPath !== folder.path) {
+      await doSaveRename(renamingFolderPath, renamingFolderName)
+    }
+    setRenamingFolderPath(folder.path)
+    setRenamingFolderName(folder.name)
+  }, [renamingFolderPath, renamingFolderName, doSaveRename])
+
+  const handleSaveRename = useCallback(() => {
+    if (renamingFolderPath) doSaveRename(renamingFolderPath, renamingFolderName)
+  }, [renamingFolderPath, renamingFolderName, doSaveRename])
+
+  const handleCancelRename = useCallback(() => {
+    setRenamingFolderPath(null)
+    setRenamingFolderName('')
+  }, [])
+
+  const handleDeleteFolder = useCallback((folder) => {
+    onDelete(folder)
+  }, [onDelete])
+
+  // ── Select-all toggle ─────────────────────────────────────────────
   const allSelected = filteredRootFolders.length > 0 &&
     filteredRootFolders.every(f => checkedFolders.has(f.path))
 
   const handleSelectAll = useCallback(() => {
     if (!onSelectAllFolders) return
     if (allSelected) {
-      onSelectAllFolders([])   // deselect all
+      onSelectAllFolders([])
     } else {
       onSelectAllFolders(filteredRootFolders.map(f => f.path))
     }
   }, [allSelected, filteredRootFolders, onSelectAllFolders])
 
-  // ── Full refresh (Task 6) ─────────────────────────────────────────
   const handleRefresh = useCallback(() => {
     setSubfolderMap(new Map())
     subfolderMapRef.current = new Map()
     refetchRoot()
   }, [refetchRoot])
 
-  const state = {
-    expanded,
-    checked:     checkedFolders,
-    active:      activeFolderPath,
-    loadingPaths,
-    subfolderMap,
-  }
+  const state     = { expanded, checked: checkedFolders, active: activeFolderPath, loadingPaths, subfolderMap, filesLoading }
   const dragState = { draggedPath, dragOverPath }
 
   return (
     <div className="flex flex-col h-full">
 
-      {/* Header — refresh + select-all + new folder (Task 1, 6) */}
+      {/* Header — search · select-all · refresh [ · delete when selected ] */}
       <div className="flex items-center gap-1 px-3 py-2.5 border-b border-[#1e1e1e]">
         <div className="relative w-full">
           <Search size={11} className="absolute left-2 top-1/2 -translate-y-1/2 text-[#6b7280]" />
@@ -575,7 +723,7 @@ export default function FolderTree({
           onClick={handleSelectAll}
           title={allSelected ? 'Deselect all folders' : 'Select all folders'}
           className={cn(
-            'w-6 h-6 flex items-center justify-center rounded-[6px] transition-colors',
+            'w-6 h-6 flex items-center justify-center rounded-[6px] transition-colors shrink-0',
             allSelected
               ? 'text-[#818cf8] bg-[#1e1b4b] hover:bg-[#2d2a6e]'
               : 'text-[#6b7280] hover:text-[#f5f5f5] hover:bg-[#1c1c1c]'
@@ -586,21 +734,42 @@ export default function FolderTree({
         <button
           onClick={handleRefresh}
           title="Refresh folders"
-          className="w-6 h-6 flex items-center justify-center rounded-[6px] text-[#6b7280] hover:text-[#4f46e5] hover:bg-[#1c1c1c] transition-colors"
+          className="w-6 h-6 flex items-center justify-center rounded-[6px] text-[#6b7280] hover:text-[#4f46e5] hover:bg-[#1c1c1c] transition-colors shrink-0"
         >
           <RefreshCw size={12} />
         </button>
-        <button
-          onClick={handleNewRootFolder}
-          title="New root folder"
-          className="w-6 h-6 flex items-center justify-center rounded-[6px] text-[#6b7280] hover:text-[#f5f5f5] hover:bg-[#1c1c1c] transition-colors"
-        >
-          <FolderPlus size={13} />
-        </button>
+
+        {/* Delete selected folders — always visible, disabled when nothing selected */}
+        {onDeletePaths && (
+          <button
+            onClick={() => checkedFolders.size > 0 && onDeletePaths([...checkedFolders])}
+            disabled={checkedFolders.size === 0}
+            title={checkedFolders.size > 0 ? `Delete ${checkedFolders.size} selected folder${checkedFolders.size > 1 ? 's' : ''}` : 'Select folders to delete'}
+            className={cn(
+              'flex items-center gap-1 h-6 px-1.5 rounded-[6px] transition-colors text-[10px] font-semibold shrink-0',
+              checkedFolders.size > 0
+                ? 'bg-[#450a0a] text-[#ef4444] hover:bg-[#6b1212] cursor-pointer'
+                : 'bg-[#111] border border-[#262626] text-[#333] cursor-not-allowed'
+            )}
+          >
+            <Trash2 size={10} />
+            {checkedFolders.size > 0 && <span>{checkedFolders.size}</span>}
+          </button>
+        )}
       </div>
 
+      {/* Shimmer bar — shown while right-panel files are loading */}
+      <div className="h-[2px] overflow-hidden bg-[#111] shrink-0">
+        {filesLoading && (
+          <motion.div
+            className="h-full w-2/5 bg-gradient-to-r from-transparent via-[#4f46e5] to-transparent"
+            animate={{ x: ['-100%', '350%'] }}
+            transition={{ repeat: Infinity, duration: 1.3, ease: 'linear' }}
+          />
+        )}
+      </div>
 
-      {/* Tree (Task 6: RootFoldersList component) */}
+      {/* Tree */}
       <div className="flex-1 overflow-y-auto py-1.5 px-1.5 space-y-0.5">
         <RootFoldersList
           rootFolders={filteredRootFolders}
@@ -608,14 +777,21 @@ export default function FolderTree({
           dragState={dragState}
           newFolderPath={newFolderPath}
           newFolderDefaultName={newFolderDefaultName}
+          renamingFolderPath={renamingFolderPath}
+          renamingFolderName={renamingFolderName}
+          renamingBusy={renamingBusy}
           onExpand={handleExpand}
           onCheck={onFolderCheck}
           onOpen={handleOpen}
-          onMoreOptions={(e, f) => setCtxMenu({ folder: f, position: { x: e.clientX, y: e.clientY } })}
+          onInlineRename={handleInlineRename}
+          onDelete={handleDeleteFolder}
           onNewSub={handleNewSub}
           onNewFolderCreated={handleNewFolderCreated}
           onNewFolderCancel={() => { setNewFolderPath(null); setNewFolderDefaultName('') }}
           onNewRootFolder={handleNewRootFolder}
+          onRenameNameChange={setRenamingFolderName}
+          onSaveRename={handleSaveRename}
+          onCancelRename={handleCancelRename}
           onDragStart={handleDragStart}
           onDragOver={path => setDragOverPath(path)}
           onDragLeave={() => setDragOverPath(null)}
@@ -623,27 +799,23 @@ export default function FolderTree({
         />
       </div>
 
-      {/* Footer: checked count */}
-      {checkedFolders.size > 0 && (
-        <div className="px-3 py-2 border-t border-[#1e1e1e]">
-          <p className="text-[10px] text-[#6b7280]">
-            {checkedFolders.size} folder{checkedFolders.size > 1 ? 's' : ''} selected
-            {checkedFolders.size > 1 && (
-              <span className="text-[#f59e0b] ml-1">· multi-view mode</span>
-            )}
-          </p>
+      {/* Footer: loading indicator / checked count */}
+      {(filesLoading || checkedFolders.size > 0) && (
+        <div className="px-3 py-2 border-t border-[#1e1e1e] flex items-center gap-2">
+          {filesLoading ? (
+            <>
+              <Loader2 size={10} className="animate-spin text-[#4f46e5] shrink-0" />
+              <span className="text-[10px] text-[#4f46e5]">Loading files…</span>
+            </>
+          ) : (
+            <p className="text-[10px] text-[#6b7280]">
+              {checkedFolders.size} folder{checkedFolders.size > 1 ? 's' : ''} selected
+              {checkedFolders.size > 1 && (
+                <span className="text-[#f59e0b] ml-1">· multi-view mode</span>
+              )}
+            </p>
+          )}
         </div>
-      )}
-
-      {/* Context menu (Task 3: only Rename + Delete) */}
-      {ctxMenu && (
-        <FolderCtxMenu
-          folder={ctxMenu.folder}
-          position={ctxMenu.position}
-          onClose={() => setCtxMenu(null)}
-          onRename={onRename}
-          onDelete={onDelete}
-        />
       )}
     </div>
   )

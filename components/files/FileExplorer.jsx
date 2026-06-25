@@ -8,7 +8,7 @@
 import { useState, useEffect, useCallback, useMemo, useRef } from 'react'
 import {
   Search, X, RefreshCw, PanelLeftClose, PanelLeftOpen,
-  Upload, Trash2, Table2, List as ListIcon, Loader2, Layers2,
+  Upload, Trash2, Table2, List as ListIcon, Loader2, Layers2, Copy,
 } from 'lucide-react';
 
 import { useFiles }       from '@/hooks/useFiles'
@@ -64,8 +64,9 @@ function RightToolbar({
   onUpload, uploadDisabled,
   selectedCount, fileCount,
   onDeleteSelected,
-  onCopyExcel, copyingExcel,
-  onCopyList,  copyingList,
+  onCopyExcel,  copyingExcel,
+  onCopyNames,  copyingNames,
+  onCopyList,   copyingList,
   multiSelectMode, onToggleMultiSelect,
   groupSize, onGroupSizeChange,
 }) {
@@ -159,6 +160,24 @@ function RightToolbar({
         {copyingExcel ? 'Copying…' : 'Copy'}
       </button>
 
+      {/* Copy Names — name (no ext) + URL per selected file, TSV for Excel */}
+      <button
+        onClick={onCopyNames}
+        disabled={copyingNames || !hasSelection}
+        title={!hasSelection ? 'Select files first' : 'Copy names + URLs (name without extension)'}
+        className={cn(
+          'flex items-center gap-1.5 px-2.5 h-8 text-xs rounded-[8px] font-medium border transition-all shrink-0',
+          copyingNames
+            ? 'bg-[#064e3b] border-[#10b981]/40 text-[#10b981]'
+            : hasSelection
+            ? 'bg-[#111111] border-[#333333] text-[#a3a3a3] hover:border-[#10b981]/60 hover:text-[#10b981]'
+            : 'bg-transparent border-[#1e1e1e] text-[#2a2a2a] cursor-not-allowed'
+        )}
+      >
+        {copyingNames ? <Loader2 size={12} className="animate-spin" /> : <Copy size={12} />}
+        {copyingNames ? 'Copying…' : 'Copy Names'}
+      </button>
+
       {/* Copy List URLs */}
       <button
         onClick={onCopyList}
@@ -250,6 +269,7 @@ export default function FileExplorer({ path: pathSegments = [] }) {
 
   // Inline copy state
   const [copyingExcel, setCopyingExcel] = useState(false)
+  const [copyingNames, setCopyingNames] = useState(false)
   const [copyingList,  setCopyingList]  = useState(false)
   const [groupSize,    setGroupSize]    = useState(1)
 
@@ -461,6 +481,49 @@ export default function FileExplorer({ path: pathSegments = [] }) {
     }
   }, [rightFiles, selectedItems, selectionOrder, toast])
 
+  // Inline Copy Names — name row ABOVE url row, respects groupSize
+  // Group of 1 → name\nurl\nname\nurl…
+  // Group of N → name1\tname2\t…\nurl1\turl2\t…  (one block per group)
+  const handleInlineCopyNames = useCallback(async () => {
+    const selectedFiles = rightFiles.filter(f => selectedItems.has(f.path))
+    if (!selectedFiles.length) { toast('Select files first', 'info'); return }
+
+    const sortedFiles = selectionOrder?.size
+      ? [...selectionOrder.entries()]
+          .filter(([p]) => selectedFiles.some(f => f.path === p))
+          .sort(([, a], [, b]) => a - b)
+          .map(([p]) => selectedFiles.find(f => f.path === p))
+          .filter(Boolean)
+      : selectedFiles
+
+    setCopyingNames(true)
+    try {
+      const paths = sortedFiles.map(f => f.path)
+      const res = await fetch('/api/files', {
+        method:  'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body:    JSON.stringify({ action: 'get-urls', paths }),
+      })
+      if (!res.ok) throw new Error((await res.json()).error)
+      const { urls } = await res.json()
+
+      // Build output: for each chunk, one name-row then one url-row
+      const rows = []
+      for (let i = 0; i < sortedFiles.length; i += groupSize) {
+        const chunkFiles = sortedFiles.slice(i, i + groupSize)
+        const chunkUrls  = urls.slice(i, i + groupSize)
+        rows.push(chunkFiles.map(f => f.name.replace(/\.[^/.]+$/, '')).join('\t'))
+        rows.push(chunkUrls.join('\t'))
+      }
+      await navigator.clipboard.writeText(rows.join('\n'))
+      toast('Copied with names!', 'success')
+    } catch (e) {
+      toast(e.message ?? 'Copy failed', 'error')
+    } finally {
+      setCopyingNames(false)
+    }
+  }, [rightFiles, selectedItems, selectionOrder, groupSize, toast])
+
   // Inline Copy List (no modal)
   const handleInlineCopyList = useCallback(async () => {
     const paths = rightFiles.filter(f => selectedItems.has(f.path)).map(f => f.path)
@@ -563,9 +626,9 @@ export default function FileExplorer({ path: pathSegments = [] }) {
   if (!authed) return <AuthGate />
 
   const rowCallbacks = {
-    onRename:  (item)  => { setRenameItem(item); setShowRename(true) },
     onDelete:  (paths) => { setDeletePaths(paths); setShowDelete(true) },
     onCopyUrl: (item)  => handleCopyUrls([item]),
+    onRenamed: refetchRoot,
   }
 
   return (
@@ -617,12 +680,14 @@ export default function FileExplorer({ path: pathSegments = [] }) {
                 rootFolders={sidebarRootFolders}
                 activeFolderPath={activeFolderPath}
                 checkedFolders={checkedFolders}
+                filesLoading={rightLoading}
                 onFolderOpen={handleFolderOpen}
                 onFolderCheck={handleFolderCheck}
                 onSelectAllFolders={handleSelectAllFolders}
                 onNewRootFolder={() => setShowNewFolder(true)}
                 onRename={(folder) => { setRenameItem(folder); setShowRename(true) }}
                 onDelete={(folder) => { setDeletePaths([folder.path]); setShowDelete(true) }}
+                onDeletePaths={(paths) => { setDeletePaths(paths); setShowDelete(true) }}
                 refetchRoot={refetchRoot}
                 toast={toast}
               />
@@ -651,6 +716,8 @@ export default function FileExplorer({ path: pathSegments = [] }) {
             onDeleteSelected={() => { setDeletePaths([...selectedItems]); setShowDelete(true) }}
             onCopyExcel={handleInlineCopyExcel}
             copyingExcel={copyingExcel}
+            onCopyNames={handleInlineCopyNames}
+            copyingNames={copyingNames}
             onCopyList={handleInlineCopyList}
             copyingList={copyingList}
             multiSelectMode={multiSelectMode}

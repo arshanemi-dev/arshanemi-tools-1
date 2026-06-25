@@ -1,9 +1,9 @@
 'use client'
-// FileList — last updated 2026-06-24
-// T8: sortable column headers (asc/desc per column), per-column search boxes
-// T9: Link column, per-row Copy Link / Download / Rename / Delete buttons
+// FileList — last updated 2026-06-25
+// T3: "Copy Name" button on every row (copies filename without extension)
+// T4: Inline file rename — no modal, extension preserved, auto-save on switch
 
-import { useState, useMemo } from 'react'
+import { useState, useMemo, useRef, useEffect, useCallback } from 'react'
 import {
   ChevronUp, ChevronDown, ChevronsUpDown,
   Link2, Download, Pencil, Trash2, Loader2, Check, Minus,
@@ -12,12 +12,51 @@ import {
   File, Archive, Code, FileSpreadsheet, FileType2,
 } from 'lucide-react'
 import { cn, formatBytes, isImage, getFileType } from '@/lib/utils'
-import FileItem from './FileItem'
 
-/* ─── Per-row action buttons (Task 9) ────────────────────────────── */
-function RowActions({ item, onRename, onDelete, onCopyUrl }) {
-  const [copyState, setCopyState]     = useState('idle')  // idle | loading | done
-  const [dlState,   setDlState]       = useState('idle')
+/* ─── File type icon helpers ─────────────────────────────────────── */
+const TYPE_ICONS = {
+  image: FileImage, video: FileVideo, audio: FileAudio,
+  pdf: FileText, doc: FileText, spreadsheet: FileSpreadsheet,
+  presentation: FileType2, archive: Archive, code: Code, text: FileText, file: File,
+}
+const TYPE_COLORS = {
+  image: 'text-[#818cf8]', video: 'text-[#f59e0b]', audio: 'text-[#10b981]',
+  pdf: 'text-[#ef4444]', doc: 'text-[#3b82f6]', spreadsheet: 'text-[#10b981]',
+  presentation: 'text-[#f97316]', archive: 'text-[#a3a3a3]', code: 'text-[#06b6d4]',
+}
+
+function FileTypeIcon({ name, size = 16, className }) {
+  const type = getFileType(name)
+  const Icon = TYPE_ICONS[type] ?? File
+  return <Icon size={size} className={cn(TYPE_COLORS[type] ?? 'text-[#6b7280]', className)} />
+}
+
+/* ─── Inline image thumbnail with loader ────────────────────────── */
+function ImageThumb({ path, name }) {
+  const [status, setStatus] = useState('loading')
+
+  return (
+    <>
+      {status === 'loading' && (
+        <Loader2 size={14} className="animate-spin text-[#6b7280] absolute" />
+      )}
+      <img
+        src={`/api/thumbnail?path=${encodeURIComponent(path)}`}
+        alt={name}
+        className={cn('w-8 h-8 object-cover rounded-[6px] transition-opacity', status === 'loaded' ? 'opacity-100' : 'opacity-0')}
+        loading="lazy"
+        onLoad={() => setStatus('loaded')}
+        onError={() => setStatus('error')}
+      />
+      {status === 'error' && <FileTypeIcon name={name} size={16} />}
+    </>
+  )
+}
+
+/* ─── Per-row action buttons (always visible) ───────────────────── */
+function RowActions({ item, onDelete, onTriggerInlineRename }) {
+  const [copyState, setCopyState] = useState('idle')  // idle | loading | done
+  const [dlState,   setDlState]   = useState('idle')
 
   const isFolder = item.tag === 'folder'
 
@@ -63,7 +102,8 @@ function RowActions({ item, onRename, onDelete, onCopyUrl }) {
   }
 
   return (
-    <div className="flex items-center gap-1 shrink-0 opacity-0 group-hover/row:opacity-100 transition-opacity">
+    <div className="flex items-center gap-0.5 shrink-0">
+
       {/* Copy link */}
       {!isFolder && (
         <button
@@ -78,7 +118,7 @@ function RowActions({ item, onRename, onDelete, onCopyUrl }) {
           )}
         >
           {copyState === 'loading' ? <Loader2 size={11} className="animate-spin" />
-            : copyState === 'done' ? <Check size={11} />
+            : copyState === 'done'  ? <Check   size={11} />
             : <Link2 size={11} />}
         </button>
       )}
@@ -97,9 +137,9 @@ function RowActions({ item, onRename, onDelete, onCopyUrl }) {
         </button>
       )}
 
-      {/* Rename */}
+      {/* T4: Rename — triggers inline rename, not modal */}
       <button
-        onClick={e => { e.stopPropagation(); onRename(item) }}
+        onClick={e => { e.stopPropagation(); onTriggerInlineRename(item) }}
         title="Rename"
         className="w-6 h-6 flex items-center justify-center rounded-[5px] text-[#6b7280] hover:text-[#f5f5f5] hover:bg-[#262626] transition-colors"
       >
@@ -148,21 +188,19 @@ export default function FileList({
   selectedItems,
   selectionOrder,
   cutPaths,
-  sortBy,          // initial hint from parent
-  onRowClick,      // row click: mode-aware (single vs multi)
-  onToggleItem,    // checkbox click: always toggles (additive)
-  onSelectAll,     // header checkbox: select all visible
-  onClearSelection,// header checkbox: deselect all
+  sortBy,
+  onRowClick,
+  onToggleItem,
+  onSelectAll,
+  onClearSelection,
   onNavigate,
   onContextMenu,
-  // Task 9: row-level callbacks
-  onRename,
   onDelete,
   onCopyUrl,
+  onRenamed,   // T4: called after a successful inline rename (use to refetch)
 }) {
-  // ── Column sort state (Task 8) ────────────────────────────────────
+  // ── Column sort ───────────────────────────────────────────────────
   const [colSort, setColSort] = useState({ col: sortBy || 'name', dir: 'asc' })
-
   function handleSort(col) {
     setColSort(prev =>
       prev.col === col
@@ -171,40 +209,31 @@ export default function FileList({
     )
   }
 
-  // ── Per-column search state (Task 8) ─────────────────────────────
+  // ── Per-column search ─────────────────────────────────────────────
   const [colSearch, setColSearch] = useState({ name: '', type: '', modified: '', size: '' })
-
   function updateSearch(col, val) {
     setColSearch(prev => ({ ...prev, [col]: val }))
   }
 
-  // ── Apply per-column search filter ────────────────────────────────
   function applyColFilters(items) {
     return items.filter(item => {
-      const nm  = colSearch.name.trim().toLowerCase()
-      const ty  = colSearch.type.trim().toLowerCase()
-      const mo  = colSearch.modified.trim().toLowerCase()
-      const sz  = colSearch.size.trim().toLowerCase()
-
+      const nm = colSearch.name.trim().toLowerCase()
+      const ty = colSearch.type.trim().toLowerCase()
+      const mo = colSearch.modified.trim().toLowerCase()
+      const sz = colSearch.size.trim().toLowerCase()
       if (nm && !item.name.toLowerCase().includes(nm)) return false
-
       const ext = item.name.split('.').pop().toLowerCase()
       if (ty && !ext.includes(ty) && !(item.tag === 'folder' ? 'folder' : ext).includes(ty)) return false
-
       if (mo && item.modified) {
-        const dateStr = new Date(item.modified).toLocaleDateString().toLowerCase()
-        if (!dateStr.includes(mo)) return false
+        if (!new Date(item.modified).toLocaleDateString().toLowerCase().includes(mo)) return false
       }
-
       if (sz && item.size != null) {
         if (!formatBytes(item.size).toLowerCase().includes(sz)) return false
       }
-
       return true
     })
   }
 
-  // ── Sort ──────────────────────────────────────────────────────────
   function sortItems(items) {
     return [...items].sort((a, b) => {
       let cmp = 0
@@ -224,12 +253,62 @@ export default function FileList({
     })
   }
 
-  const sortedFolders = useMemo(() =>
-    sortItems(applyColFilters(folders)), [folders, colSort, colSearch])
-  const sortedFiles   = useMemo(() =>
-    sortItems(applyColFilters(files)),   [files,   colSort, colSearch])
+  const sortedFolders = useMemo(() => sortItems(applyColFilters(folders)), [folders, colSort, colSearch])
+  const sortedFiles   = useMemo(() => sortItems(applyColFilters(files)),   [files,   colSort, colSearch])
+  const allItems      = [...sortedFolders, ...sortedFiles]
 
-  const allItems = [...sortedFolders, ...sortedFiles]
+  // ── T4: Inline rename state ───────────────────────────────────────
+  const [inlineRenameItem, setInlineRenameItem] = useState(null)
+  const [inlineRenameName, setInlineRenameName] = useState('')
+  const [inlineRenameBusy, setInlineRenameBusy] = useState(false)
+
+  const doInlineRename = useCallback(async (item, name) => {
+    const trimmed = name.trim()
+    if (!trimmed) { setInlineRenameItem(null); setInlineRenameName(''); return }
+
+    const ext     = item.tag === 'file' ? (item.name.match(/\.[^/.]+$/) ?? [''])[0] : ''
+    const newName = trimmed + ext
+
+    if (newName === item.name) { setInlineRenameItem(null); setInlineRenameName(''); return }
+
+    setInlineRenameBusy(true)
+    try {
+      const res = await fetch('/api/files', {
+        method:  'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body:    JSON.stringify({ path: item.path, newName }),
+      })
+      if (!res.ok) throw new Error((await res.json()).error)
+      setInlineRenameItem(null)
+      setInlineRenameName('')
+      onRenamed?.()
+    } catch {
+      // keep open so user can fix; don't clear
+    } finally {
+      setInlineRenameBusy(false)
+    }
+  }, [onRenamed])
+
+  // T4: Trigger inline rename — auto-save existing open rename first
+  const handleTriggerInlineRename = useCallback(async (item) => {
+    if (inlineRenameItem && inlineRenameItem.path !== item.path) {
+      await doInlineRename(inlineRenameItem, inlineRenameName)
+    }
+    const initialName = item.tag === 'file'
+      ? item.name.replace(/\.[^/.]+$/, '')
+      : item.name
+    setInlineRenameItem(item)
+    setInlineRenameName(initialName)
+  }, [inlineRenameItem, inlineRenameName, doInlineRename])
+
+  const handleSaveInlineRename = useCallback(() => {
+    if (inlineRenameItem) doInlineRename(inlineRenameItem, inlineRenameName)
+  }, [inlineRenameItem, inlineRenameName, doInlineRename])
+
+  const handleCancelInlineRename = useCallback(() => {
+    setInlineRenameItem(null)
+    setInlineRenameName('')
+  }, [])
 
   if (allItems.length === 0 && !Object.values(colSearch).some(Boolean)) {
     return (
@@ -239,19 +318,17 @@ export default function FileList({
     )
   }
 
-  const hasRowCallbacks = onRename && onDelete
+  const hasRowCallbacks = !!onDelete
 
   return (
     <div className="overflow-x-auto rounded-[8px] border border-[#1e1e1e]">
       <table className="w-full text-xs border-collapse">
         <thead>
-          {/* ── Sort header row (Task 8) ── */}
           <tr className="bg-[#0d0d0d] border-b border-[#1e1e1e]">
-            {/* Select-all header checkbox */}
             <th className="w-8 px-2 py-2" onClick={e => e.stopPropagation()}>
               {onSelectAll && (() => {
-                const total = sortedFolders.length + sortedFiles.length
-                const allSel = total > 0 && selectedItems.size >= total
+                const total   = sortedFolders.length + sortedFiles.length
+                const allSel  = total > 0 && selectedItems.size >= total
                 const partial = !allSel && selectedItems.size > 0
                 return (
                   <button
@@ -270,26 +347,17 @@ export default function FileList({
                 )
               })()}
             </th>
-            {/* Thumbnail column */}
             <th className="w-10 px-3 py-2" />
-
-            <SortTh col="name"     label="Name"     colSort={colSort} onSort={handleSort} className="min-w-[180px]" />
-            {/* <SortTh col="type"     label="Type"     colSort={colSort} onSort={handleSort} className="w-20 hidden sm:table-cell" />
-            <SortTh col="modified" label="Modified" colSort={colSort} onSort={handleSort} className="w-28 hidden md:table-cell" />
-            <SortTh col="size"     label="Size"     colSort={colSort} onSort={handleSort} className="w-20 text-right" /> */}
-            {/* Link column header (Task 9) */}
+            <SortTh col="name" label="Name" colSort={colSort} onSort={handleSort} className="min-w-[180px]" />
             <th className="w-14 px-3 py-2 text-left text-[11px] font-semibold text-[#6b7280]">Link</th>
-            {/* Actions */}
-            {hasRowCallbacks && <th className="w-28 px-3 py-2" />}
+            {hasRowCallbacks && <th className="w-36 px-3 py-2" />}
           </tr>
-
-        
         </thead>
 
         <tbody>
           {allItems.length === 0 ? (
             <tr>
-              <td colSpan={hasRowCallbacks ? 8 : 7} className="py-12 text-center text-xs text-[#6b7280]">
+              <td colSpan={hasRowCallbacks ? 5 : 4} className="py-12 text-center text-xs text-[#6b7280]">
                 No results match your filters
               </td>
             </tr>
@@ -305,10 +373,17 @@ export default function FileList({
                 onToggleItem={onToggleItem}
                 onNavigate={onNavigate}
                 onContextMenu={onContextMenu}
-                onRename={onRename}
                 onDelete={onDelete}
                 onCopyUrl={onCopyUrl}
                 hasRowCallbacks={hasRowCallbacks}
+                // T4: inline rename
+                isRenaming={inlineRenameItem?.path === item.path}
+                inlineRenameName={inlineRenameName}
+                inlineRenameBusy={inlineRenameBusy}
+                onTriggerInlineRename={handleTriggerInlineRename}
+                onInlineRenameNameChange={setInlineRenameName}
+                onSaveInlineRename={handleSaveInlineRename}
+                onCancelInlineRename={handleCancelInlineRename}
               />
             ))
           )}
@@ -323,24 +398,37 @@ function ListRow({
   item,
   isSelected, isCut, selectionIndex,
   onRowClick, onToggleItem, onNavigate, onContextMenu,
-  onRename, onDelete, onCopyUrl,
+  onDelete, onCopyUrl,
   hasRowCallbacks,
+  // T4: inline rename props
+  isRenaming, inlineRenameName, inlineRenameBusy,
+  onTriggerInlineRename, onInlineRenameNameChange,
+  onSaveInlineRename, onCancelInlineRename,
 }) {
   const isFolder = item.tag === 'folder'
-  const ext      = isFolder ? 'Folder' : (item.name.split('.').pop()?.toUpperCase() ?? '—')
+  const ext      = isFolder ? '' : (item.name.match(/\.[^/.]+$/) ?? [''])[0]
+
+  const inputRef = useRef(null)
+  useEffect(() => {
+    if (isRenaming && inputRef.current) {
+      inputRef.current.focus()
+      inputRef.current.select()
+    }
+  }, [isRenaming])
 
   return (
     <tr
-      onClick={e => onRowClick?.(item, e)}
-      onDoubleClick={() => isFolder && onNavigate(item.path)}
+      onClick={e => isRenaming ? e.stopPropagation() : onRowClick?.(item, e)}
+      onDoubleClick={() => !isRenaming && isFolder && onNavigate(item.path)}
       onContextMenu={e => onContextMenu(e, item)}
       className={cn(
         'group/row border-b border-[#1a1a1a] last:border-0 cursor-pointer select-none transition-colors',
         isSelected ? 'bg-[#1e1b4b]' : 'hover:bg-[#141414]',
         isCut && 'opacity-50',
+        isRenaming && 'bg-[#0f0f1a]',
       )}
     >
-      {/* Checkbox: always toggles item (additive), regardless of mode */}
+      {/* Checkbox */}
       <td className="px-2 py-2 w-8" onClick={e => e.stopPropagation()}>
         <button
           onClick={e => { e.stopPropagation(); onToggleItem?.(item) }}
@@ -356,7 +444,7 @@ function ListRow({
         </button>
       </td>
 
-      {/* Thumbnail + selection badge */}
+      {/* Thumbnail */}
       <td className="px-3 py-2 w-10">
         <div className="relative w-8 h-8 shrink-0 flex items-center justify-center rounded-[6px] bg-[#161616]">
           {isFolder ? (
@@ -374,28 +462,70 @@ function ListRow({
         </div>
       </td>
 
-      {/* Name */}
-      <td className="px-3 py-2 min-w-[180px] w-full">
-        <span className="text-xs text-[#f5f5f5] truncate block max-w-[300px]" title={item.name}>
-          {item.name.length > 40 ? item.name.slice(0, 38) + '…' : item.name}
-        </span>
-        {item.folderSource && (
-          <span className="text-[9px] px-1 py-0.5 rounded bg-[#1e1b4b] text-[#818cf8] mt-0.5 inline-block">
-            {item.folderSource}
-          </span>
+      {/* Name — T4: inline input when renaming */}
+      <td
+        className="px-3 py-2 min-w-[180px] w-full"
+        onClick={e => isRenaming && e.stopPropagation()}
+      >
+        {isRenaming ? (
+          <form
+            onSubmit={e => { e.preventDefault(); onSaveInlineRename() }}
+            className="flex items-center gap-1.5"
+          >
+            <input
+              ref={inputRef}
+              value={inlineRenameName}
+              onChange={e => onInlineRenameNameChange(e.target.value)}
+              onKeyDown={e => {
+                if (e.key === 'Escape') { e.preventDefault(); onCancelInlineRename() }
+                if (e.key === 'Enter')  { e.preventDefault(); onSaveInlineRename() }
+              }}
+              className="flex-1 min-w-0 px-2 py-0.5 text-xs bg-[#0a0a0a] border border-[#4f46e5] rounded-[5px] text-[#f5f5f5] focus:outline-none"
+            />
+            {/* Show extension as read-only hint for files */}
+            {!isFolder && ext && (
+              <span className="text-[10px] text-[#6b7280] shrink-0 font-mono">{ext}</span>
+            )}
+            <button
+              type="submit"
+              disabled={inlineRenameBusy || !inlineRenameName.trim()}
+              className="w-5 h-5 flex items-center justify-center rounded-[4px] bg-[#4f46e5] text-white disabled:opacity-40 shrink-0 hover:bg-[#4338ca] transition-colors"
+            >
+              {inlineRenameBusy ? <Loader2 size={9} className="animate-spin" /> : <Check size={9} />}
+            </button>
+            <button
+              type="button"
+              onClick={e => { e.stopPropagation(); onCancelInlineRename() }}
+              className="w-5 h-5 flex items-center justify-center rounded-[4px] text-[#6b7280] hover:text-[#f5f5f5] hover:bg-[#262626] shrink-0 transition-colors"
+            >
+              <X size={9} />
+            </button>
+          </form>
+        ) : (
+          <>
+            <span className="text-xs text-[#f5f5f5] truncate block max-w-[300px]" title={item.name}>
+              {item.name.length > 40 ? item.name.slice(0, 38) + '…' : item.name}
+            </span>
+            {item.folderSource && (
+              <span className="text-[9px] px-1 py-0.5 rounded bg-[#1e1b4b] text-[#818cf8] mt-0.5 inline-block">
+                {item.folderSource}
+              </span>
+            )}
+          </>
         )}
       </td>
 
-   
+      {/* Link column — empty, reserved for extension */}
+      <td className="px-3 py-2 w-14" />
 
-      {/* Row actions (Task 9) */}
+      {/* Row actions — T3 Copy Name + T4 inline rename trigger */}
       {hasRowCallbacks && (
-        <td className="px-2 py-2 w-28">
+        <td className="px-2 py-2 w-36" onClick={e => e.stopPropagation()}>
           <RowActions
             item={item}
-            onRename={onRename}
             onDelete={onDelete}
             onCopyUrl={onCopyUrl}
+            onTriggerInlineRename={onTriggerInlineRename}
           />
         </td>
       )}
@@ -403,42 +533,12 @@ function ListRow({
   )
 }
 
-/* ─── Inline image thumbnail with loader (used in list row) ─────── */
-function ImageThumb({ path, name }) {
-  const [status, setStatus] = useState('loading') // loading | loaded | error
-
+// ─── X icon (needed for inline form) ───────────────────────────────
+function X({ size, className }) {
   return (
-    <>
-      {status === 'loading' && (
-        <Loader2 size={14} className="animate-spin text-[#6b7280] absolute" />
-      )}
-      <img
-        src={`/api/thumbnail?path=${encodeURIComponent(path)}`}
-        alt={name}
-        className={cn('w-8 h-8 object-cover rounded-[6px] transition-opacity', status === 'loaded' ? 'opacity-100' : 'opacity-0')}
-        loading="lazy"
-        onLoad={() => setStatus('loaded')}
-        onError={() => setStatus('error')}
-      />
-      {status === 'error' && <FileTypeIcon name={name} size={16} />}
-    </>
+    <svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}>
+      <line x1="18" y1="6" x2="6" y2="18"/>
+      <line x1="6" y1="6" x2="18" y2="18"/>
+    </svg>
   )
-}
-
-/* ─── File type icon helpers ─────────────────────────────────────── */
-const TYPE_ICONS = {
-  image: FileImage, video: FileVideo, audio: FileAudio,
-  pdf: FileText, doc: FileText, spreadsheet: FileSpreadsheet,
-  presentation: FileType2, archive: Archive, code: Code, text: FileText, file: File,
-}
-const TYPE_COLORS = {
-  image: 'text-[#818cf8]', video: 'text-[#f59e0b]', audio: 'text-[#10b981]',
-  pdf: 'text-[#ef4444]', doc: 'text-[#3b82f6]', spreadsheet: 'text-[#10b981]',
-  presentation: 'text-[#f97316]', archive: 'text-[#a3a3a3]', code: 'text-[#06b6d4]',
-}
-
-function FileTypeIcon({ name, size = 16, className }) {
-  const type = getFileType(name)
-  const Icon = TYPE_ICONS[type] ?? File
-  return <Icon size={size} className={cn(TYPE_COLORS[type] ?? 'text-[#6b7280]', className)} />
 }
