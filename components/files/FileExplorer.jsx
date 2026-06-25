@@ -285,7 +285,7 @@ export default function FileExplorer({ path: pathSegments = [] }) {
     if (authed && treeRootPath === null) setTreeRootPath(userRoot || '')
   }, [authed, userRoot, treeRootPath])
 
-  const { folders: sidebarRootFolders, refetch: refetchSidebar } = useFiles(treeRootPath)
+  const { folders: sidebarRootFolders, loading: sidebarLoading, refetch: refetchSidebar } = useFiles(treeRootPath)
 
   const [toasts, setToasts] = useState([])
   const toast = useCallback((message, type = 'info') => {
@@ -294,21 +294,24 @@ export default function FileExplorer({ path: pathSegments = [] }) {
     setTimeout(() => setToasts(prev => prev.filter(t => t.id !== id)), 3500)
   }, [])
 
-  // T2: BFS recursive fetch
+  // T2: BFS recursive fetch — use explicit checkedFolders, fall back to activeFolderPath
   useEffect(() => {
-    if (!authed || !checkedFolders.size) {
+    const foldersToLoad = checkedFolders.size > 0
+      ? [...checkedFolders]
+      : activeFolderPath ? [activeFolderPath] : []
+    if (!authed || !foldersToLoad.length) {
       setRightFiles([])
       setRightLoading(false)
       return
     }
     let cancelled = false
     setRightLoading(true)
-    fetchAllFilesRecursive([...checkedFolders])
+    fetchAllFilesRecursive(foldersToLoad)
       .then(files => { if (!cancelled) setRightFiles(files) })
       .catch(e    => { if (!cancelled) toast(e.message, 'error') })
       .finally(() => { if (!cancelled) setRightLoading(false) })
     return () => { cancelled = true }
-  }, [authed, checkedFolders, fetchTick]) // eslint-disable-line react-hooks/exhaustive-deps
+  }, [authed, checkedFolders, activeFolderPath, fetchTick]) // eslint-disable-line react-hooks/exhaustive-deps
 
   const refetchRoot = useCallback(() => {
     refetchSidebar()
@@ -398,7 +401,6 @@ export default function FileExplorer({ path: pathSegments = [] }) {
     if (authed) {
       setCurrentPath(startPath)
       setActiveFolderPath(startPath)
-      if (startPath !== '') setCheckedFolders(new Set([startPath]))
     }
   }, [authed, startPath])
 
@@ -408,13 +410,11 @@ export default function FileExplorer({ path: pathSegments = [] }) {
     setActiveFolderPath(path)
     clearSelection()
     clearClipboard()
-    setCheckedFolders(new Set([path]))
   }, [userRoot, clearSelection, clearClipboard])
 
   const handleFolderOpen = useCallback((path) => {
     setActiveFolderPath(path)
     setCurrentPath(path)
-    setCheckedFolders(new Set([path]))
     clearSelection()
   }, [clearSelection])
 
@@ -461,6 +461,11 @@ export default function FileExplorer({ path: pathSegments = [] }) {
       })
       if (!res.ok) throw new Error((await res.json()).error)
       clearSelection()
+      setCheckedFolders(prev => {
+        const next = new Set(prev)
+        paths.forEach(p => next.delete(p))
+        return next
+      })
       refetchRoot()
       toast(`Deleted ${paths.length} item${paths.length > 1 ? 's' : ''}`, 'success')
     } catch (e) {
@@ -665,7 +670,7 @@ export default function FileExplorer({ path: pathSegments = [] }) {
     toggleItem(item.path)
   }, [toggleItem])
 
-  const uploadDisabled = checkedFolders.size !== 1
+  const uploadDisabled = !activeFolderPath
 
   if (!checked) {
     return (
@@ -733,6 +738,7 @@ export default function FileExplorer({ path: pathSegments = [] }) {
                 activeFolderPath={activeFolderPath}
                 checkedFolders={checkedFolders}
                 filesLoading={rightLoading}
+                sidebarLoading={treeRootPath === null || sidebarLoading}
                 onFolderOpen={handleFolderOpen}
                 onFolderCheck={handleFolderCheck}
                 onSelectAllFolders={handleSelectAllFolders}

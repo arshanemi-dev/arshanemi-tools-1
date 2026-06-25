@@ -3,7 +3,7 @@
 import { useState, useEffect, useRef } from 'react'
 import { isLoggedIn, getStoredUser } from '@/lib/tokenStore'
 import { getActiveUser } from '@/lib/localStore'
-import { getUserRootPath, ensureUserFolderFromClient } from '@/lib/userAccess'
+import { buildUserRootPath, getUserRootPath, ensureUserFolderFromClient } from '@/lib/userAccess'
 
 const IS_CONNECT = process.env.NEXT_PUBLIC_IS_CONNECT?.toLowerCase() === 'true'
 
@@ -29,7 +29,9 @@ export function useAuthGate(initialPath = '') {
 
       // Determine root path
       let root = ''
-      if (user?.role !== 'admin') {
+      if (user?.role === 'admin') {
+        root = buildUserRootPath(user)
+      } else {
         root = getUserRootPath()
         if (!root) root = await ensureUserFolderFromClient(user)
       }

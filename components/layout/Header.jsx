@@ -2,17 +2,19 @@
 
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { Layers, Settings, Clock } from 'lucide-react'
+import { Layers, Settings, Clock, CalendarClock } from 'lucide-react'
 import { isLoggedIn } from '@/lib/tokenStore'
 import { useEffect, useState } from 'react'
 import { cn } from '@/lib/utils'
 import { useSelectedFiles } from '@/context/SelectedFilesContext'
 import ExpiryModal from '@/components/ui/ExpiryModal'
+import FilesExpiryManagerModal from '@/components/ui/FilesExpiryManagerModal'
 
 export default function Header() {
   const pathname  = usePathname()
-  const [loggedIn, setLoggedIn] = useState(false)
-  const [showExpiryModal, setShowExpiryModal] = useState(false)
+  const [loggedIn,        setLoggedIn]        = useState(false)
+  const [showExpiryModal, setShowExpiryModal] = useState(false)   // bulk edit for selected files
+  const [showManager,     setShowManager]     = useState(false)   // full expiry manager
 
   const { selectedFiles } = useSelectedFiles()
 
@@ -46,25 +48,18 @@ export default function Header() {
         </div>
 
         <div className="flex items-center gap-2">
-          {/* Edit Expiry — visible when files are selected */}
+
+          {/* ── Bulk "Edit Expiry" — only when files are selected ── */}
           {selectedFiles.length > 0 && (
             <button
               onClick={() => setShowExpiryModal(true)}
-              className="flex items-center gap-1.5 px-3 h-7 text-xs rounded-[8px] bg-[#1e1b4b] border border-[#4f46e5]/40 text-[#818cf8] hover:bg-[#1e1b4b]/80 transition-colors"
+              className="flex items-center gap-1.5 px-3 h-7 text-xs rounded-[8px] bg-[#1e1b4b] border border-[#4f46e5]/40 text-[#818cf8] hover:bg-[#2d2a6e] transition-colors"
             >
               <Clock size={12} />
               Edit Expiry ({selectedFiles.length})
             </button>
           )}
-
-          <a
-            href="https://www.dropbox.com"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="text-xs text-[#6b7280] hover:text-[#818cf8] transition-colors hidden md:block"
-          >
-            Dropbox ↗
-          </a>
+          
           <div className="w-px h-4 bg-[#262626] hidden md:block" />
 
           <Link
@@ -91,12 +86,18 @@ export default function Header() {
         </div>
       </header>
 
+      {/* Bulk expiry modal for currently selected files */}
       {showExpiryModal && (
         <ExpiryModal
           files={selectedFiles}
           onSave={handleBulkSaveExpiry}
           onClose={() => setShowExpiryModal(false)}
         />
+      )}
+
+      {/* Global expiry manager modal */}
+      {showManager && (
+        <FilesExpiryManagerModal onClose={() => setShowManager(false)} />
       )}
     </>
   )

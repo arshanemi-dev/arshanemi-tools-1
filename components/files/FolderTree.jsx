@@ -264,7 +264,7 @@ function TreeNode({
   const isActive      = state.active === folder.path
   const isDragOver    = dragState.dragOverPath === folder.path && dragState.draggedPath !== folder.path
   const isLoading     = state.loadingPaths.has(folder.path)
-  const isFilesLoading = state.filesLoading && isChecked   // right-panel files are loading for this folder
+  const isFilesLoading = state.filesLoading && isActive   // right-panel files are loading for active folder
   const isRenaming    = renamingFolderPath === folder.path
   const children      = state.subfolderMap.get(folder.path) ?? []
   const showNewHere   = newFolderPath === folder.path
@@ -457,6 +457,7 @@ export default function FolderTree({
   activeFolderPath,
   checkedFolders,
   filesLoading,
+  sidebarLoading,
   onFolderOpen,
   onFolderCheck,
   onSelectAllFolders,
@@ -774,6 +775,18 @@ export default function FolderTree({
 
       {/* Tree */}
       <div className="flex-1 overflow-y-auto py-1.5 px-1.5 space-y-0.5">
+        {sidebarLoading ? (
+          <div className="py-2 px-1 space-y-0.5">
+            {[28, 20, 36, 16, 24, 32].map((w, i) => (
+              <div key={i} className="flex items-center gap-1.5 px-2 py-[5px] rounded-[7px] animate-pulse">
+                <div className="w-4 h-4 rounded bg-[#1e1e1e] shrink-0" />
+                <div className="w-3.5 h-3.5 rounded bg-[#1e1e1e] shrink-0" />
+                <div className="w-3.5 h-3.5 rounded-[3px] bg-[#1e1e1e] shrink-0" />
+                <div className={`h-2.5 rounded bg-[#1e1e1e]`} style={{ width: `${w * 3}px` }} />
+              </div>
+            ))}
+          </div>
+        ) : (
         <RootFoldersList
           rootFolders={filteredRootFolders}
           rootPath={rootPath}
@@ -801,6 +814,7 @@ export default function FolderTree({
           onDragLeave={() => setDragOverPath(null)}
           onDrop={handleDrop}
         />
+        )}
       </div>
 
       {/* Footer: loading indicator / checked count */}

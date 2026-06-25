@@ -75,7 +75,7 @@ function ExpiryBadge({ expiryAt, onEdit }) {
 }
 
 /* ─── Per-row action buttons (always visible) ───────────────────── */
-function RowActions({ item, onDelete, onTriggerInlineRename }) {
+function RowActions({ item, onDelete, onTriggerInlineRename, expiryRecord, onEditExpiry }) {
   const [copyState, setCopyState] = useState('idle')  // idle | loading | done
   const [dlState,   setDlState]   = useState('idle')
 
@@ -155,6 +155,22 @@ function RowActions({ item, onDelete, onTriggerInlineRename }) {
           {dlState === 'loading'
             ? <Loader2 size={11} className="animate-spin" />
             : <Download size={11} />}
+        </button>
+      )}
+
+      {/* Set / edit expiry — shown for files only */}
+      {!isFolder && onEditExpiry && (
+        <button
+          onClick={e => { e.stopPropagation(); onEditExpiry() }}
+          title={expiryRecord ? 'Edit expiry' : 'Set expiry'}
+          className={cn(
+            'w-6 h-6 flex items-center justify-center rounded-[5px] transition-colors',
+            expiryRecord
+              ? 'text-[#818cf8] bg-[#1e1b4b] hover:bg-[#2d2a6e]'
+              : 'text-[#6b7280] hover:text-[#818cf8] hover:bg-[#1e1b4b]'
+          )}
+        >
+          <Clock size={11} />
         </button>
       )}
 
@@ -558,6 +574,8 @@ function ListRow({
             onDelete={onDelete}
             onCopyUrl={onCopyUrl}
             onTriggerInlineRename={onTriggerInlineRename}
+            expiryRecord={expiryRecord}
+            onEditExpiry={onEditExpiry}
           />
         </td>
       )}
