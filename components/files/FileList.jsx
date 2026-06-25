@@ -7,7 +7,7 @@ import { useState, useMemo, useRef, useEffect, useCallback } from 'react'
 import {
   ChevronUp, ChevronDown, ChevronsUpDown,
   Link2, Download, Pencil, Trash2, Loader2, Check, Minus,
-  Folder,
+  Folder, Clock,
   FileText, FileImage, FileVideo, FileAudio,
   File, Archive, Code, FileSpreadsheet, FileType2,
 } from 'lucide-react'
@@ -50,6 +50,27 @@ function ImageThumb({ path, name }) {
       />
       {status === 'error' && <FileTypeIcon name={name} size={16} />}
     </>
+  )
+}
+
+/* ─── Expiry badge ───────────────────────────────────────────────── */
+function ExpiryBadge({ expiryAt, onEdit }) {
+  const days = Math.ceil((new Date(expiryAt) - new Date()) / 86400000)
+  const label = days <= 0 ? 'Expired' : `Exp: ${days}d`
+  const cls = days <= 0
+    ? 'bg-red-500/20 text-red-400'
+    : days <= 7
+    ? 'bg-amber-500/20 text-amber-400'
+    : 'bg-[#1e1b4b] text-[#818cf8]'
+  return (
+    <button
+      onClick={e => { e.stopPropagation(); onEdit() }}
+      title="Edit expiry"
+      className={cn('flex items-center gap-0.5 text-[9px] font-medium px-1.5 py-0.5 rounded-full leading-none shrink-0', cls)}
+    >
+      <Clock size={9} />
+      {label}
+    </button>
   )
 }
 
@@ -198,6 +219,8 @@ export default function FileList({
   onDelete,
   onCopyUrl,
   onRenamed,   // T4: called after a successful inline rename (use to refetch)
+  expiryMap,   // Map<fileName, expiryRecord> — optional
+  onEditExpiry, // (item) => void — open expiry modal for a file
 }) {
   // ── Column sort ───────────────────────────────────────────────────
   const [colSort, setColSort] = useState({ col: sortBy || 'name', dir: 'asc' })
@@ -376,6 +399,8 @@ export default function FileList({
                 onDelete={onDelete}
                 onCopyUrl={onCopyUrl}
                 hasRowCallbacks={hasRowCallbacks}
+                expiryRecord={expiryMap?.get(item.name)}
+                onEditExpiry={onEditExpiry ? () => onEditExpiry(item) : undefined}
                 // T4: inline rename
                 isRenaming={inlineRenameItem?.path === item.path}
                 inlineRenameName={inlineRenameName}
@@ -400,6 +425,7 @@ function ListRow({
   onRowClick, onToggleItem, onNavigate, onContextMenu,
   onDelete, onCopyUrl,
   hasRowCallbacks,
+  expiryRecord, onEditExpiry,
   // T4: inline rename props
   isRenaming, inlineRenameName, inlineRenameBusy,
   onTriggerInlineRename, onInlineRenameNameChange,
@@ -502,16 +528,22 @@ function ListRow({
             </button>
           </form>
         ) : (
-          <>
-            <span className="text-xs text-[#f5f5f5] truncate block max-w-[300px]" title={item.name}>
+          <div className="flex items-center gap-2 min-w-0">
+            <span className="text-xs text-[#f5f5f5] truncate max-w-[260px]" title={item.name}>
               {item.name.length > 40 ? item.name.slice(0, 38) + '…' : item.name}
             </span>
             {item.folderSource && (
-              <span className="text-[9px] px-1 py-0.5 rounded bg-[#1e1b4b] text-[#818cf8] mt-0.5 inline-block">
+              <span className="text-[9px] px-1 py-0.5 rounded bg-[#1e1b4b] text-[#818cf8] shrink-0">
                 {item.folderSource}
               </span>
             )}
-          </>
+            {expiryRecord && onEditExpiry && (
+              <ExpiryBadge
+                expiryAt={expiryRecord.expiryAt ?? expiryRecord.expiry_at}
+                onEdit={onEditExpiry}
+              />
+            )}
+          </div>
         )}
       </td>
 

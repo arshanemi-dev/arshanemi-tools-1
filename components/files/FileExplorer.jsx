@@ -11,13 +11,14 @@ import {
   Upload, Trash2, Table2, List as ListIcon, Loader2, Layers2, Copy,
 } from 'lucide-react';
 
-import { useFiles }       from '@/hooks/useFiles'
-import { useAuthGate }    from '@/hooks/useAuthGate'
-import { useSelection }   from '@/hooks/useSelection'
-import { useClipboard }   from '@/hooks/useClipboard'
-import { useContextMenu } from '@/hooks/useContextMenu'
-import { useUpload }      from '@/hooks/useUpload'
-import { cn }             from '@/lib/utils'
+import { useFiles }           from '@/hooks/useFiles'
+import { useAuthGate }        from '@/hooks/useAuthGate'
+import { useSelection }       from '@/hooks/useSelection'
+import { useClipboard }       from '@/hooks/useClipboard'
+import { useContextMenu }     from '@/hooks/useContextMenu'
+import { useUpload }          from '@/hooks/useUpload'
+import { cn }                 from '@/lib/utils'
+import { useSelectedFiles }   from '@/context/SelectedFilesContext'
 
 import AuthGate            from './AuthGate'
 import FolderTree          from './FolderTree'
@@ -32,6 +33,7 @@ import UploadModal         from './UploadModal'
 import CopyUrlsModal       from './CopyUrlsModal'
 import DropZone            from './DropZone'
 import Spinner             from '@/components/ui/Spinner'
+import ExpiryModal         from '@/components/ui/ExpiryModal'
 
 const GROUP_SIZES = [1, 2, 3, 4]
 
@@ -329,6 +331,18 @@ export default function FileExplorer({ path: pathSegments = [] }) {
   const { selectedItems, selectionOrder, toggleSelect, toggleItem, selectAll, clearSelection } =
     useSelection(allItems)
 
+  // Sync selection to global context so Header can show Edit Expiry button.
+  // Use selectionOrder (stable Map ref from useState) instead of selectedItems
+  // (new Set every render) to avoid an infinite re-render loop.
+  const { setSelectedFiles } = useSelectedFiles()
+  useEffect(() => {
+    if (!selectionOrder.size) { setSelectedFiles([]); return }
+    const files = allItems
+      .filter(i => selectionOrder.has(i.path))
+      .map(i => ({ name: i.name, path: i.path }))
+    setSelectedFiles(files)
+  }, [selectionOrder, allItems]) // eslint-disable-line react-hooks/exhaustive-deps
+
   const [multiSelectMode, setMultiSelectMode] = useState(false)
   const shiftUsedRef = useRef(false)
   const { clipboard, copy, cut, paste, clearClipboard } = useClipboard({
@@ -342,6 +356,43 @@ export default function FileExplorer({ path: pathSegments = [] }) {
   })
 
   const cutPaths = clipboard?.op === 'cut' ? new Set(clipboard.paths) : new Set()
+
+  // ── File expiry records ───────────────────────────────────────────
+  const [expiryRecords,   setExpiryRecords]   = useState([])
+  const [expiryModalItem, setExpiryModalItem] = useState(null) // { name, path } | null
+
+  const fetchExpiry = useCallback(async () => {
+    try {
+      const res  = await fetch('/api/files-expiry')
+      const data = await res.json()
+      setExpiryRecords(data.records ?? [])
+    } catch { /* non-critical */ }
+  }, [])
+
+  useEffect(() => { fetchExpiry() }, [fetchExpiry])
+
+  const expiryMap = useMemo(
+    () => new Map(expiryRecords.map(r => [r.name, r])),
+    [expiryRecords]
+  )
+
+  async function handleSaveExpiry(expiryAt) {
+    const record = expiryMap.get(expiryModalItem.name)
+    if (record) {
+      await fetch(`/api/files-expiry/${record.id}`, {
+        method:  'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body:    JSON.stringify({ expiryAt }),
+      })
+    } else {
+      await fetch('/api/files-expiry', {
+        method:  'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body:    JSON.stringify({ items: [{ name: expiryModalItem.name, expiryAt }] }),
+      })
+    }
+    fetchExpiry()
+  }
 
   useEffect(() => {
     if (authed) {
@@ -678,6 +729,7 @@ export default function FileExplorer({ path: pathSegments = [] }) {
             >
               <FolderTree
                 rootFolders={sidebarRootFolders}
+                rootPath={treeRootPath ?? ''}
                 activeFolderPath={activeFolderPath}
                 checkedFolders={checkedFolders}
                 filesLoading={rightLoading}
@@ -777,6 +829,8 @@ export default function FileExplorer({ path: pathSegments = [] }) {
                 onClearSelection={clearSelection}
                 onNavigate={navigate}
                 onContextMenu={openMenu}
+                expiryMap={expiryMap}
+                onEditExpiry={(item) => setExpiryModalItem({ name: item.name, path: item.path })}
                 {...rowCallbacks}
               />
             )}
@@ -828,6 +882,16 @@ export default function FileExplorer({ path: pathSegments = [] }) {
         selectionOrder={selectionOrder}
         toast={toast}
       />
+
+      {/* Per-file expiry modal */}
+      {expiryModalItem && (
+        <ExpiryModal
+          files={[expiryModalItem]}
+          existingExpiry={expiryMap.get(expiryModalItem.name)?.expiryAt ?? expiryMap.get(expiryModalItem.name)?.expiry_at}
+          onSave={handleSaveExpiry}
+          onClose={() => setExpiryModalItem(null)}
+        />
+      )}
 
       {/* Toast notifications */}
       <div className="fixed bottom-5 right-5 z-[9999] flex flex-col gap-2 pointer-events-none">

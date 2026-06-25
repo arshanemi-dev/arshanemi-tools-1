@@ -367,7 +367,7 @@ function RootNewFolderButton({ onClick }) {
 
 /* ─── Root Folders List ───────────────────────────────────────────── */
 function RootFoldersList({
-  rootFolders, state, dragState,
+  rootFolders, rootPath, state, dragState,
   newFolderPath, newFolderDefaultName,
   renamingFolderPath, renamingFolderName, renamingBusy,
   onExpand, onCheck, onOpen,
@@ -376,6 +376,8 @@ function RootFoldersList({
   onRenameNameChange, onSaveRename, onCancelRename,
   onDragStart, onDragOver, onDragLeave, onDrop,
 }) {
+  const isRootForm = newFolderPath === rootPath
+
   // T5: beautiful empty state with root-level New Folder at bottom
   if (rootFolders.length === 0) {
     return (
@@ -392,9 +394,9 @@ function RootFoldersList({
 
         {/* Root-level new-folder form or button — at bottom even when empty */}
         <div className="px-2 pb-2">
-          {newFolderPath === '' ? (
+          {isRootForm ? (
             <InlineNewFolder
-              parentPath=""
+              parentPath={rootPath}
               defaultName={newFolderDefaultName}
               onCreated={onNewFolderCreated}
               onCancel={onNewFolderCancel}
@@ -433,9 +435,9 @@ function RootFoldersList({
 
       {/* Root-level: always show New Folder button or inline form at bottom (T2) */}
       <div className="px-1.5 pt-1 pb-1">
-        {newFolderPath === '' ? (
+        {isRootForm ? (
           <InlineNewFolder
-            parentPath=""
+            parentPath={rootPath}
             defaultName={newFolderDefaultName}
             onCreated={onNewFolderCreated}
             onCancel={onNewFolderCancel}
@@ -451,6 +453,7 @@ function RootFoldersList({
 /* ─── FolderTree (main export) ────────────────────────────────────── */
 export default function FolderTree({
   rootFolders,
+  rootPath = '',
   activeFolderPath,
   checkedFolders,
   filesLoading,
@@ -592,8 +595,8 @@ export default function FolderTree({
   const handleNewRootFolder = useCallback(() => {
     const defaultName = getNextFolderName(rootFolders.map(f => f.name))
     setNewFolderDefaultName(defaultName)
-    setNewFolderPath('')
-  }, [rootFolders])
+    setNewFolderPath(rootPath)
+  }, [rootFolders, rootPath])
 
   const handleNewFolderCreated = useCallback(() => {
     const parent = newFolderPath
@@ -773,6 +776,7 @@ export default function FolderTree({
       <div className="flex-1 overflow-y-auto py-1.5 px-1.5 space-y-0.5">
         <RootFoldersList
           rootFolders={filteredRootFolders}
+          rootPath={rootPath}
           state={state}
           dragState={dragState}
           newFolderPath={newFolderPath}

@@ -1,13 +1,33 @@
 'use client'
-// FileItem — last updated 2026-06-24
-// T11: loading spinner on every image/video, live-URL fallback when thumbnail fails
+// FileItem — last updated 2026-06-25
 
 import { useState } from 'react'
 import {
   Folder, FolderOpen, FileText, FileImage, FileVideo, FileAudio,
-  File, Archive, Code, FileSpreadsheet, FileType2, Loader2,
+  File, Archive, Code, FileSpreadsheet, FileType2, Loader2, Clock,
 } from 'lucide-react'
 import { cn, formatBytes, getFileType, isImage } from '@/lib/utils'
+
+function ExpiryBadge({ expiryAt, onEdit }) {
+  const days = Math.ceil((new Date(expiryAt) - new Date()) / 86400000)
+  const label = days <= 0 ? 'Expired' : `Exp: ${days}d`
+  const cls   = days <= 0
+    ? 'bg-red-500/20 text-red-400'
+    : days <= 7
+    ? 'bg-amber-500/20 text-amber-400'
+    : 'bg-[#1e1b4b] text-[#818cf8]'
+
+  return (
+    <button
+      onClick={e => { e.stopPropagation(); onEdit() }}
+      title="Edit expiry"
+      className={cn('flex items-center gap-0.5 text-[9px] font-medium px-1.5 py-0.5 rounded-full leading-none', cls)}
+    >
+      <Clock size={9} />
+      {label}
+    </button>
+  )
+}
 
 const TYPE_ICONS = {
   image:        FileImage,
@@ -171,8 +191,9 @@ export default function FileItem({
   onSelect,
   onDoubleClick,
   onContextMenu,
+  expiryRecord,
+  onEditExpiry,
 }) {
-  console.log('FileItem render', item)
   const isFolder = item.tag === 'folder'
 
   // ── List view ────────────────────────────────────────────────────
@@ -211,7 +232,10 @@ export default function FileItem({
         <span className="flex-1 text-sm text-[#f5f5f5] truncate">{item.name}</span>
 
         {/* Meta */}
-        <div className="flex items-center gap-4 shrink-0">
+        <div className="flex items-center gap-3 shrink-0">
+          {expiryRecord && (
+            <ExpiryBadge expiryAt={expiryRecord.expiryAt ?? expiryRecord.expiry_at} onEdit={onEditExpiry} />
+          )}
           {item.folderSource && (
             <span className="text-[10px] px-1.5 py-0.5 rounded bg-[#1e1b4b] text-[#818cf8] hidden sm:block">
               {item.folderSource}
@@ -286,6 +310,10 @@ export default function FileItem({
       ) : isFolder ? (
         <span className="text-[10px] text-[#4f46e5]">Folder</span>
       ) : null}
+
+      {expiryRecord && (
+        <ExpiryBadge expiryAt={expiryRecord.expiryAt ?? expiryRecord.expiry_at} onEdit={onEditExpiry} />
+      )}
     </div>
   )
 }

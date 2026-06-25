@@ -6,15 +6,14 @@ import { addUser, updateUser, deleteUser, setActiveUserId } from '@/lib/localSto
 import { ensureUserFolderFromClient } from '@/lib/userAccess'
 import { cn } from '@/lib/utils'
 
-const ROLES = ['admin', 'editor', 'viewer']
+const ROLES = ['admin', 'user']
 
 const ROLE_STYLES = {
   admin:  { badge: 'text-[#818cf8] bg-[#1e1b4b] border-[#4f46e5]/30', avatar: 'bg-[#4f46e5] text-white' },
-  editor: { badge: 'text-[#34d399] bg-[#064e3b] border-[#10b981]/30', avatar: 'bg-[#059669] text-white' },
-  viewer: { badge: 'text-[#a3a3a3] bg-[#1c1c1c]  border-[#333333]',   avatar: 'bg-[#2a2a2a] text-[#6b7280]' },
+  user: { badge: 'text-[#34d399] bg-[#064e3b] border-[#10b981]/30', avatar: 'bg-[#059669] text-white' },
 }
 
-const BLANK = { name: '', email: '', role: 'viewer', companyId: null }
+const BLANK = { name: '', email: '', role: 'user', companyId: null }
 
 // ── Inline create / edit form ─────────────────────────────────────────────────
 
@@ -124,7 +123,7 @@ function UserForm({ initial = BLANK, companies = [], onSave, onCancel, title }) 
 // ── User row ──────────────────────────────────────────────────────────────────
 
 function UserRow({ user, companies, isActive, onActivate, onEdit, onDelete }) {
-  const rs = ROLE_STYLES[user.role] ?? ROLE_STYLES.viewer
+  const rs = ROLE_STYLES[user.role] ?? ROLE_STYLES.user
   const company = companies.find(c => c.id === user.companyId)
 
   return (

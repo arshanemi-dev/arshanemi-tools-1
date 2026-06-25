@@ -2,6 +2,7 @@ import { Inter } from 'next/font/google'
 import './globals.css'
 import Header from '@/components/layout/Header'
 import { ToastProvider } from '@/components/layout/ToastProvider'
+import { SelectedFilesProvider } from '@/context/SelectedFilesContext'
 import LoginModal from '@/components/ui/LoginModal'
 
 const inter = Inter({ subsets: ['latin'], variable: '--font-inter' })
@@ -16,9 +17,11 @@ export default function RootLayout({ children }) {
     <html lang="en" className="h-full">
       <body className={`${inter.variable} font-sans h-full flex flex-col`}>
         <ToastProvider>
-          <Header />
-          <main className="flex-1 overflow-hidden bg-[#0a0a0a]">{children}</main>
-          <LoginModal />
+          <SelectedFilesProvider>
+            <Header />
+            <main className="flex-1 overflow-hidden bg-[#0a0a0a]">{children}</main>
+            <LoginModal />
+          </SelectedFilesProvider>
         </ToastProvider>
       </body>
     </html>

@@ -5,8 +5,7 @@ import { cn } from '@/lib/utils'
 
 const ROLE_STYLES = {
   admin:  { dot: 'bg-[#818cf8]', badge: 'text-[#818cf8] bg-[#1e1b4b] border-[#4f46e5]/30' },
-  editor: { dot: 'bg-[#34d399]', badge: 'text-[#34d399] bg-[#064e3b] border-[#10b981]/30' },
-  viewer: { dot: 'bg-[#a3a3a3]', badge: 'text-[#a3a3a3] bg-[#1c1c1c]  border-[#333333]'  },
+  user: { dot: 'bg-[#34d399]', badge: 'text-[#34d399] bg-[#064e3b] border-[#10b981]/30' },
 }
 
 function MetaRow({ icon: Icon, label, value }) {
@@ -48,8 +47,8 @@ export default function ProfilePanel({ user, onGoToUsers }) {
     )
   }
 
-  const role   = user.role ?? 'viewer'
-  const styles = ROLE_STYLES[role] ?? ROLE_STYLES.viewer
+  const role   = user.role ?? 'user'
+  const styles = ROLE_STYLES[role] ?? ROLE_STYLES.user
 
   return (
     <div className="flex flex-col gap-4">
