@@ -568,6 +568,12 @@ export default function FileExplorer({ path: pathSegments = [] }) {
       for (let i = 0; i < sortedFiles.length; i += groupSize) {
         const chunkFiles = sortedFiles.slice(i, i + groupSize)
         const chunkUrls  = urls.slice(i, i + groupSize)
+        if(groupSize === 1) {
+
+        }else{
+              cols.push(chunkFiles.map(f => f.name.replace(/\.[^/.]+$/, '')).join('\t'))
+        rows.push(chunkUrls.join('\t'))
+        }
         rows.push(chunkFiles.map(f => f.name.replace(/\.[^/.]+$/, '')).join('\t'))
         rows.push(chunkUrls.join('\t'))
       }

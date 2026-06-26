@@ -1,9 +1,9 @@
 import { NextResponse } from 'next/server'
-import { getThumbnail } from '@/lib/storage'
+import { getServerDropboxToken } from '@/lib/dropboxToken'
 
 export async function GET(request) {
   try {
-    const token = request.headers.get('X-Dropbox-Token');
+    const userToken = request.headers.get('X-Dropbox-Token');
     const { searchParams } = new URL(request.url);
     const path = searchParams.get('path');
 
@@ -11,17 +11,14 @@ export async function GET(request) {
       return NextResponse.json({ error: 'Path parameter is required' }, { status: 400 });
     }
 
-    const activeToken = process.env.DROPBOX_ACCESS_TOKEN || token;
-    if (!activeToken) {
-      return NextResponse.json({ error: 'Missing Dropbox Token' }, { status: 401 });
-    }
+    // Prefer user's explicitly configured token; fall back to server refresh token
+    const activeToken = userToken || await getServerDropboxToken();
 
-    // 1. Call the Dropbox API directly via native Next.js fetch
+    // Call the Dropbox API directly via native Next.js fetch
     const response = await fetch('https://content.dropboxapi.com/2/files/get_thumbnail_v2', {
       method: 'POST',
       headers: {
         'Authorization': `Bearer ${activeToken}`,
-        // Dropbox expects arguments passed through this custom header
         'Dropbox-API-Arg': JSON.stringify({
           resource: { '.tag': 'path', path: path },
           format: { '.tag': 'jpeg' },
