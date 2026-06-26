@@ -54,18 +54,31 @@ function ImageThumb({ path, name }) {
 }
 
 /* ─── Expiry badge ───────────────────────────────────────────────── */
+function formatExpiryLabel(days) {
+  if (days <= 0)  return 'Expired'
+  if (days < 7)   return `${days}d`
+  if (days < 30)  return `${Math.floor(days / 7)}w`
+  if (days < 365) return `${Math.floor(days / 30)}mo`
+  return `${Math.floor(days / 365)}y`
+}
+
 function ExpiryBadge({ expiryAt, onEdit }) {
-  const days = Math.ceil((new Date(expiryAt) - new Date()) / 86400000)
-  const label = days <= 0 ? 'Expired' : `Exp: ${days}d`
+  const days     = Math.ceil((new Date(expiryAt) - new Date()) / 86400000)
+  const label    = formatExpiryLabel(days)
+  const fullDate = new Date(expiryAt).toLocaleDateString('en-IN', {
+    day: 'numeric', month: 'short', year: 'numeric',
+  })
   const cls = days <= 0
     ? 'bg-red-500/20 text-red-400'
     : days <= 7
     ? 'bg-amber-500/20 text-amber-400'
+    : days <= 30
+    ? 'bg-yellow-500/15 text-yellow-400'
     : 'bg-[#1e1b4b] text-[#818cf8]'
   return (
     <button
       onClick={e => { e.stopPropagation(); onEdit() }}
-      title="Edit expiry"
+      title={`Expires: ${fullDate}`}
       className={cn('flex items-center gap-0.5 text-[9px] font-medium px-1.5 py-0.5 rounded-full leading-none shrink-0', cls)}
     >
       <Clock size={9} />

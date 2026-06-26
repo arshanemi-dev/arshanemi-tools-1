@@ -8,7 +8,7 @@
 import { useState, useEffect, useCallback, useMemo, useRef } from 'react'
 import {
   Search, X, RefreshCw, PanelLeftClose, PanelLeftOpen,
-  Upload, Trash2, Table2, List as ListIcon, Loader2, Layers2, Copy,
+  Upload, Trash2, Table2, List as ListIcon, Loader2, Layers2, Copy, Clock,
 } from 'lucide-react';
 
 import { useFiles }           from '@/hooks/useFiles'
@@ -63,16 +63,18 @@ async function fetchAllFilesRecursive(rootPaths) {
 /* ── Single-row toolbar ───────────────────────────────────────────── */
 function RightToolbar({
   search, onSearchChange,
-  onUpload, uploadDisabled,
+  onUpload, uploadDisabled, uploadTitle,
   selectedCount, fileCount,
-  onDeleteSelected,
+  onDeleteSelected, deleting,
+  onEditExpiry,
   onCopyExcel,  copyingExcel,
   onCopyNames,  copyingNames,
   onCopyList,   copyingList,
   multiSelectMode, onToggleMultiSelect,
   groupSize, onGroupSizeChange,
 }) {
-  const hasSelection = selectedCount > 1
+  const hasSelection    = selectedCount > 1
+  const hasAnySelected  = selectedCount > 0
 
   return (
     <div className="flex items-center gap-2 px-4 py-2.5 border-b border-[#1e1e1e] bg-[#0d0d0d] shrink-0">
@@ -198,16 +200,38 @@ function RightToolbar({
         {copyingList ? 'Copying…' : 'Copy List'}
       </button>
 
-      {/* Delete selected */}
-   
-        <button
+      {/* Edit Expiry — always visible, enabled only when 2+ selected */}
+      <button
+        onClick={hasSelection ? onEditExpiry : undefined}
         disabled={!hasSelection}
-          onClick={onDeleteSelected}
-          className={hasSelection ? "flex items-center gap-1.5 px-2.5 h-8 text-xs rounded-[8px] bg-[#450a0a] text-[#ef4444] hover:bg-[#6b1212] transition-colors font-medium shrink-0" : "flex items-center gap-1.5 px-2.5 h-8 text-xs rounded-[8px] bg-[#111] border border-[#262626] text-[#2a2a2a] cursor-not-allowed"}
-        >
-          <Trash2 size={12} />
-          Delete ({selectedCount})
-        </button>
+        title={!hasSelection ? 'Select 2 or more files to edit expiry' : `Edit expiry for ${selectedCount} files`}
+        className={cn(
+          'flex items-center gap-1.5 px-2.5 h-8 text-xs rounded-[8px] font-medium border transition-all shrink-0',
+          hasSelection
+            ? 'bg-[#1e1b4b] border-[#4f46e5]/40 text-[#818cf8] hover:bg-[#2d2a6e]'
+            : 'bg-transparent border-[#1e1e1e] text-[#2a2a2a] cursor-not-allowed'
+        )}
+      >
+        <Clock size={12} />
+        Edit Expiry{hasSelection ? ` (${selectedCount})` : ''}
+      </button>
+
+      {/* Delete selected */}
+      <button
+        disabled={!hasSelection || deleting}
+        onClick={onDeleteSelected}
+        className={cn(
+          'flex items-center gap-1.5 px-2.5 h-8 text-xs rounded-[8px] font-medium transition-all shrink-0',
+          deleting
+            ? 'bg-[#450a0a] text-[#ef4444] opacity-70 cursor-not-allowed'
+            : hasSelection
+            ? 'bg-[#450a0a] text-[#ef4444] hover:bg-[#6b1212]'
+            : 'bg-[#111] border border-[#262626] text-[#2a2a2a] cursor-not-allowed'
+        )}
+      >
+        {deleting ? <Loader2 size={12} className="animate-spin" /> : <Trash2 size={12} />}
+        {deleting ? 'Deleting…' : `Delete (${selectedCount})`}
+      </button>
     
 
 
@@ -216,7 +240,7 @@ function RightToolbar({
       <button
         onClick={onUpload}
         disabled={uploadDisabled}
-        title={uploadDisabled ? 'Select a single folder to upload' : 'Upload Files'}
+        title={uploadDisabled ? uploadTitle : 'Upload Files'}
         className={cn(
           'flex items-center gap-1.5 px-3 h-8 text-xs rounded-[8px] font-medium transition-all shrink-0',
           uploadDisabled
@@ -280,6 +304,10 @@ export default function FileExplorer({ path: pathSegments = [] }) {
   const [rightLoading, setRightLoading] = useState(false)
   const [fetchTick,    setFetchTick]    = useState(0)
 
+  // Bulk expiry UI
+  const pendingExpiryRef               = useRef(null)
+  const [showBulkExpiry, setShowBulkExpiry] = useState(false)
+
   const [treeRootPath, setTreeRootPath] = useState(null)
   useEffect(() => {
     if (authed && treeRootPath === null) setTreeRootPath(userRoot || '')
@@ -323,6 +351,7 @@ export default function FileExplorer({ path: pathSegments = [] }) {
   const [renameItem,    setRenameItem]    = useState(null)
   const [showDelete,    setShowDelete]    = useState(false)
   const [deletePaths,   setDeletePaths]   = useState([])
+  const [deleting,      setDeleting]      = useState(false)
   const [showUpload,    setShowUpload]    = useState(false)
   const [showCopyUrls,  setShowCopyUrls]  = useState(false)
   const [copyUrlItems,  setCopyUrlItems]  = useState([])
@@ -374,6 +403,32 @@ export default function FileExplorer({ path: pathSegments = [] }) {
 
   useEffect(() => { fetchExpiry() }, [fetchExpiry])
 
+  // Save expiry for newly uploaded files when upload completes
+  useEffect(() => {
+    if (uploading || !uploads.length) return
+    if (!pendingExpiryRef.current) return
+    const doneUploads = uploads.filter(u => u.status === 'done')
+    if (!doneUploads.length) return
+    const expiryAt = pendingExpiryRef.current
+    pendingExpiryRef.current = null
+    fetch('/api/files-expiry', {
+      method:  'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body:    JSON.stringify({ items: doneUploads.map(u => ({ name: u.file.name, expiryAt })) }),
+    }).then(fetchExpiry).catch(() => {})
+  }, [uploading, uploads, fetchExpiry])
+
+  // Names of files that already exist in the active upload folder (for duplicate detection)
+  const existingNamesInFolder = useMemo(() => {
+    if (activeFolderPath === null || activeFolderPath === undefined) return new Set()
+    const prefix = activeFolderPath === '' ? '/' : activeFolderPath + '/'
+    return new Set(
+      rightFiles
+        .filter(f => f.tag === 'file' && f.path.startsWith(prefix) && !f.path.slice(prefix.length).includes('/'))
+        .map(f => f.name)
+    )
+  }, [rightFiles, activeFolderPath])
+
   const expiryMap = useMemo(
     () => new Map(expiryRecords.map(r => [r.name, r])),
     [expiryRecords]
@@ -394,6 +449,18 @@ export default function FileExplorer({ path: pathSegments = [] }) {
         body:    JSON.stringify({ items: [{ name: expiryModalItem.name, expiryAt }] }),
       })
     }
+    fetchExpiry()
+  }
+
+  async function handleBulkSaveExpiry(expiryAt) {
+    const items = allItems
+      .filter(i => i.tag === 'file' && selectedItems.has(i.path))
+      .map(i => ({ name: i.name, expiryAt }))
+    await fetch('/api/files-expiry', {
+      method:  'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body:    JSON.stringify({ items }),
+    })
     fetchExpiry()
   }
 
@@ -453,6 +520,7 @@ export default function FileExplorer({ path: pathSegments = [] }) {
   }, [clearSelection])
 
   const handleDelete = useCallback(async (paths) => {
+    setDeleting(true)
     try {
       const res = await fetch('/api/files', {
         method:  'DELETE',
@@ -470,6 +538,8 @@ export default function FileExplorer({ path: pathSegments = [] }) {
       toast(`Deleted ${paths.length} item${paths.length > 1 ? 's' : ''}`, 'success')
     } catch (e) {
       toast(e.message, 'error')
+    } finally {
+      setDeleting(false)
     }
   }, [clearSelection, refetchRoot, toast])
 
@@ -537,9 +607,9 @@ export default function FileExplorer({ path: pathSegments = [] }) {
     }
   }, [rightFiles, selectedItems, selectionOrder, toast])
 
-  // Inline Copy Names — name row ABOVE url row, respects groupSize
-  // Group of 1 → name\nurl\nname\nurl…
-  // Group of N → name1\tname2\t…\nurl1\turl2\t…  (one block per group)
+  // Inline Copy Names — respects groupSize
+  // Group of 1 → name\turl per row (col A = name, col B = URL, paste straight into Excel)
+  // Group of N → name1\tname2\t…\nurl1\turl2\t… (name row then url row per group)
   const handleInlineCopyNames = useCallback(async () => {
     const selectedFiles = rightFiles.filter(f => selectedItems.has(f.path))
     if (!selectedFiles.length) { toast('Select files first', 'info'); return }
@@ -563,19 +633,20 @@ export default function FileExplorer({ path: pathSegments = [] }) {
       if (!res.ok) throw new Error((await res.json()).error)
       const { urls } = await res.json()
 
-      // Build output: for each chunk, one name-row then one url-row
       const rows = []
       for (let i = 0; i < sortedFiles.length; i += groupSize) {
         const chunkFiles = sortedFiles.slice(i, i + groupSize)
         const chunkUrls  = urls.slice(i, i + groupSize)
-        if(groupSize === 1) {
-
-        }else{
-              cols.push(chunkFiles.map(f => f.name.replace(/\.[^/.]+$/, '')).join('\t'))
-        rows.push(chunkUrls.join('\t'))
+        const names = chunkFiles.map(f => f.name.replace(/\.[^/.]+$/, ''))
+        if (groupSize === 1) {
+          // name in col A, URL in col B — one file per row
+          rows.push(`${names[0]}\t${chunkUrls[0]}`)
+        } else {
+          // name row then url row for this group
+          rows.push(names.join('\t'))
+          rows.push(chunkUrls.join('\t'))
+          // rows.push('')
         }
-        rows.push(chunkFiles.map(f => f.name.replace(/\.[^/.]+$/, '')).join('\t'))
-        rows.push(chunkUrls.join('\t'))
       }
       await navigator.clipboard.writeText(rows.join('\n'))
       toast('Copied with names!', 'success')
@@ -676,7 +747,14 @@ export default function FileExplorer({ path: pathSegments = [] }) {
     toggleItem(item.path)
   }, [toggleItem])
 
-  const uploadDisabled = !activeFolderPath
+  // Upload only makes sense targeting one specific sub-folder
+  const isAtUserRoot   = activeFolderPath === userRoot
+  const uploadDisabled = !activeFolderPath || checkedFolders.size > 1 || isAtUserRoot
+  const uploadTitle    = checkedFolders.size > 1
+    ? 'Select a single folder to upload (multiple folders are selected)'
+    : isAtUserRoot
+    ? 'Select a sub-folder to upload (cannot upload to root)'
+    : 'Select a folder first'
 
   if (!checked) {
     return (
@@ -775,9 +853,12 @@ export default function FileExplorer({ path: pathSegments = [] }) {
             onSearchChange={setSearch}
             onUpload={() => setShowUpload(true)}
             uploadDisabled={uploadDisabled}
+            uploadTitle={uploadTitle}
             selectedCount={selectedItems.size}
             fileCount={filteredFiles.length}
             onDeleteSelected={() => { setDeletePaths([...selectedItems]); setShowDelete(true) }}
+            deleting={deleting}
+            onEditExpiry={() => setShowBulkExpiry(true)}
             onCopyExcel={handleInlineCopyExcel}
             copyingExcel={copyingExcel}
             onCopyNames={handleInlineCopyNames}
@@ -883,9 +964,14 @@ export default function FileExplorer({ path: pathSegments = [] }) {
       <UploadModal
         open={showUpload}
         onClose={() => { setShowUpload(false); clearUploads() }}
-        onUpload={uploadFiles}
+        onUpload={(files, expiryDate) => {
+          pendingExpiryRef.current = expiryDate || null
+          uploadFiles(files)
+        }}
         uploads={uploads}
         uploading={uploading}
+        existingNames={existingNamesInFolder}
+        folderPath={activeFolderPath}
       />
       <CopyUrlsModal
         open={showCopyUrls}
@@ -902,6 +988,15 @@ export default function FileExplorer({ path: pathSegments = [] }) {
           existingExpiry={expiryMap.get(expiryModalItem.name)?.expiryAt ?? expiryMap.get(expiryModalItem.name)?.expiry_at}
           onSave={handleSaveExpiry}
           onClose={() => setExpiryModalItem(null)}
+        />
+      )}
+
+      {/* Bulk expiry modal — for all currently selected files */}
+      {showBulkExpiry && (
+        <ExpiryModal
+          files={allItems.filter(i => i.tag === 'file' && selectedItems.has(i.path)).map(i => ({ name: i.name, path: i.path }))}
+          onSave={handleBulkSaveExpiry}
+          onClose={() => setShowBulkExpiry(false)}
         />
       )}
 

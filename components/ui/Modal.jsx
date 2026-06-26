@@ -5,13 +5,13 @@ import { motion, AnimatePresence } from 'framer-motion'
 import { X } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
-export default function Modal({ open, onClose, title, children, size = 'md', className }) {
+export default function Modal({ open, onClose, title, children, size = 'md', className, lockClose }) {
   useEffect(() => {
-    if (!open) return
+    if (!open || lockClose) return
     const onKey = (e) => { if (e.key === 'Escape') onClose?.() }
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
-  }, [open, onClose])
+  }, [open, onClose, lockClose])
 
   useEffect(() => {
     document.body.style.overflow = open ? 'hidden' : ''
@@ -30,7 +30,7 @@ export default function Modal({ open, onClose, title, children, size = 'md', cla
             exit={{ opacity: 0 }}
             transition={{ duration: 0.15 }}
             className="absolute inset-0 bg-black/70 backdrop-blur-sm"
-            onClick={onClose}
+            onClick={lockClose ? undefined : onClose}
           />
           <motion.div
             initial={{ opacity: 0, scale: 0.95, y: 12 }}

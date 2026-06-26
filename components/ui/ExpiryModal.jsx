@@ -1,24 +1,24 @@
 'use client'
+
 import { useState } from 'react'
 import { X, Clock, Check, Loader2 } from 'lucide-react'
+import ExpiryPicker from '@/components/ui/ExpiryPicker'
 
 function daysRemaining(iso) {
   return Math.ceil((new Date(iso) - new Date()) / 86400000)
 }
 
 export default function ExpiryModal({ files, existingExpiry, onSave, onClose }) {
-  const [date, setDate]       = useState(
-    existingExpiry ? existingExpiry.slice(0, 10) : ''
-  )
-  const [saving, setSaving]   = useState(false)
-  const [error, setError]     = useState('')
+  const [expiryIso, setExpiryIso] = useState(existingExpiry ?? null)
+  const [saving,    setSaving]    = useState(false)
+  const [error,     setError]     = useState('')
 
   async function handleSave() {
     setError('')
-    if (!date) { setError('Please select an expiry date'); return }
+    if (!expiryIso) { setError('Please select an expiry date'); return }
     setSaving(true)
     try {
-      await onSave(new Date(date).toISOString())
+      await onSave(expiryIso)
       onClose()
     } catch (e) {
       setError(e.message ?? 'Failed to save')
@@ -30,6 +30,7 @@ export default function ExpiryModal({ files, existingExpiry, onSave, onClose }) 
   return (
     <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4">
       <div className="bg-[#111111] border border-[#262626] rounded-[12px] shadow-xl w-full max-w-md">
+
         {/* Header */}
         <div className="flex items-center justify-between px-5 py-4 border-b border-[#262626]">
           <div className="flex items-center gap-2">
@@ -44,8 +45,9 @@ export default function ExpiryModal({ files, existingExpiry, onSave, onClose }) 
         </div>
 
         <div className="px-5 py-4 space-y-4">
+
           {/* File list preview */}
-          <div className="space-y-1 max-h-32 overflow-y-auto">
+          <div className="space-y-1 max-h-28 overflow-y-auto">
             {files.map(f => (
               <div key={f.path} className="flex items-center gap-2 text-xs text-[#a3a3a3] bg-[#161616] rounded-[6px] px-3 py-1.5">
                 <Clock size={11} className="text-[#4f46e5] shrink-0" />
@@ -54,23 +56,24 @@ export default function ExpiryModal({ files, existingExpiry, onSave, onClose }) 
             ))}
           </div>
 
-          {/* Current expiry if single file */}
-          {existingExpiry && (
+          {/* Current expiry — only for single-file edit */}
+          {existingExpiry && files.length === 1 && (
             <p className="text-xs text-[#6b7280]">
-              Current expiry: <span className={daysRemaining(existingExpiry) <= 0 ? 'text-red-400' : 'text-[#818cf8]'}>
+              Current expiry:{' '}
+              <span className={daysRemaining(existingExpiry) <= 0 ? 'text-red-400' : 'text-[#818cf8]'}>
                 {new Date(existingExpiry).toLocaleDateString()} ({daysRemaining(existingExpiry)}d)
               </span>
             </p>
           )}
 
-          {/* Date picker */}
+          {/* Expiry picker */}
           <div>
-            <label className="block text-xs font-medium text-[#a3a3a3] mb-1.5">New Expiry Date</label>
-            <input
-              type="date"
-              value={date}
-              onChange={e => setDate(e.target.value)}
-              className="w-full bg-[#161616] border border-[#262626] rounded-[8px] px-3 py-2 text-sm text-[#f5f5f5] focus:outline-none focus:ring-1 focus:ring-[#4f46e5]/60"
+            <p className="text-xs font-medium text-[#a3a3a3] mb-2">
+              {existingExpiry ? 'Update Expiry' : 'Set Expiry Date'}
+            </p>
+            <ExpiryPicker
+              initialValue={existingExpiry}
+              onChange={setExpiryIso}
             />
           </div>
 
@@ -87,13 +90,14 @@ export default function ExpiryModal({ files, existingExpiry, onSave, onClose }) 
           </button>
           <button
             onClick={handleSave}
-            disabled={saving}
-            className="px-4 py-1.5 text-xs bg-[#4f46e5] text-white rounded-[8px] hover:bg-[#4338ca] transition-colors disabled:opacity-60 flex items-center gap-1.5"
+            disabled={saving || !expiryIso}
+            className="px-4 py-1.5 text-xs bg-[#4f46e5] text-white rounded-[8px] hover:bg-[#4338ca] transition-colors disabled:opacity-40 flex items-center gap-1.5"
           >
             {saving ? <Loader2 size={11} className="animate-spin" /> : <Check size={11} />}
             Save Expiry
           </button>
         </div>
+
       </div>
     </div>
   )

@@ -1,6 +1,8 @@
 import { NextResponse } from 'next/server'
 import { uploadFile } from '@/lib/storage'
 
+export const maxDuration = 300  // 5 min — large video uploads need time
+
 export async function POST(request) {
   try {
     const token    = request.headers.get('X-Dropbox-Token') || null
