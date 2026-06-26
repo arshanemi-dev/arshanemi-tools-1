@@ -50,25 +50,25 @@ export default function DropZone({ onDrop, currentPath }) {
     <div className="fixed inset-0 z-40 pointer-events-none">
       <div className={`absolute inset-4 rounded-[16px] border-2 border-dashed flex flex-col items-center justify-center gap-3 backdrop-blur-[2px] ${
         disabled
-          ? 'border-[#6b7280] bg-[#6b7280]/5'
-          : 'border-[#4f46e5] bg-[#4f46e5]/5'
+          ? 'border-[var(--lt-text-subtle)] bg-[var(--lt-text-subtle)]/5'
+          : 'border-[var(--lt-accent)] bg-[var(--lt-accent)]/5'
       }`}>
         <div className={`w-16 h-16 rounded-full border flex items-center justify-center ${
-          disabled ? 'bg-[#1c1c1c] border-[#333333]' : 'bg-[#1e1b4b] border-[#4f46e5]/40'
+          disabled ? 'bg-[var(--lt-card-hover)] border-[var(--lt-divider-light)]' : 'bg-[var(--lt-accent-muted)] border-[var(--lt-accent)]/40'
         }`}>
-          <Upload size={28} className={disabled ? 'text-[#6b7280]' : 'text-[#818cf8]'} />
+          <Upload size={28} className={disabled ? 'text-[var(--lt-text-subtle)]' : 'text-[var(--lt-accent-light)]'} />
         </div>
         {disabled ? (
           <>
-            <p className="text-[#6b7280] font-semibold text-lg">Upload disabled</p>
-            <p className="text-[#6b7280] text-sm">Select a single folder to enable upload</p>
+            <p className="text-[var(--lt-text-subtle)] font-semibold text-lg">Upload disabled</p>
+            <p className="text-[var(--lt-text-subtle)] text-sm">Select a single folder to enable upload</p>
           </>
         ) : (
           <>
-            <p className="text-[#818cf8] font-semibold text-lg">Drop to upload</p>
-            <p className="text-[#6b7280] text-sm">
+            <p className="text-[var(--lt-accent-light)] font-semibold text-lg">Drop to upload</p>
+            <p className="text-[var(--lt-text-subtle)] text-sm">
               Files will upload to{' '}
-              <span className="text-[#4f46e5]">{currentPath || '/ (root)'}</span>
+              <span className="text-[var(--lt-accent)]">{currentPath || '/ (root)'}</span>
             </p>
           </>
         )}

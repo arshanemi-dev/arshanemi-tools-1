@@ -59,29 +59,29 @@ function InlineNewFolder({ parentPath, defaultName, onCreated, onCancel }) {
   return (
     <form
       onSubmit={submit}
-      className="flex items-center gap-1.5 px-2 py-1.5 mx-0.5 my-0.5 bg-[#0f0f1a] rounded-[8px] border border-[#4f46e5]/30"
+      className="flex items-center gap-1.5 px-2 py-1.5 mx-0.5 my-0.5 bg-[var(--lt-accent-muted)] rounded-[8px] border border-[var(--lt-accent)]/30"
       onClick={e => e.stopPropagation()}
     >
-      <Folder size={12} className="text-[#4f46e5] shrink-0" fill="rgba(79,70,229,0.18)" />
+      <Folder size={12} className="text-[var(--lt-accent)] shrink-0" fill="rgba(79,70,229,0.18)" />
       <input
         ref={inputRef}
         value={name}
         onChange={e => setName(e.target.value)}
         onKeyDown={e => { if (e.key === 'Escape') onCancel() }}
         placeholder="Folder name…"
-        className="flex-1 min-w-0 px-2 py-0.5 text-xs bg-[#0a0a0a] border border-[#4f46e5]/50 rounded-[5px] text-[#f5f5f5] placeholder-[#6b7280] focus:outline-none focus:border-[#4f46e5]"
+        className="flex-1 min-w-0 px-2 py-0.5 text-xs bg-[var(--lt-bg-base)] border border-[var(--lt-accent)]/50 rounded-[5px] text-[var(--lt-text-primary)] placeholder-[var(--lt-text-subtle)] focus:outline-none focus:border-[var(--lt-accent)]"
       />
       <button
         type="submit"
         disabled={busy || !name.trim()}
-        className="w-6 h-6 flex items-center justify-center rounded-[5px] bg-[#4f46e5] hover:bg-[#4338ca] text-white disabled:opacity-40 shrink-0 transition-colors"
+        className="w-6 h-6 flex items-center justify-center rounded-[5px] bg-[var(--lt-accent)] hover:bg-[var(--lt-accent-hover)] text-white disabled:opacity-40 shrink-0 transition-colors"
       >
         {busy ? <Loader2 size={10} className="animate-spin" /> : <Check size={10} />}
       </button>
       <button
         type="button"
         onClick={onCancel}
-        className="w-6 h-6 flex items-center justify-center rounded-[5px] text-[#6b7280] hover:text-[#f5f5f5] hover:bg-[#262626] shrink-0 transition-colors"
+        className="w-6 h-6 flex items-center justify-center rounded-[5px] text-[var(--lt-text-subtle)] hover:text-[var(--lt-text-primary)] hover:bg-[var(--lt-divider)] shrink-0 transition-colors"
       >
         <X size={10} />
       </button>
@@ -101,7 +101,7 @@ function InlineFolderRename({ level, renameName, onNameChange, onSave, onCancel,
   return (
     <form
       onSubmit={e => { e.preventDefault(); onSave() }}
-      className="flex items-center gap-1.5 pr-2 py-[4px] rounded-[7px] bg-[#1a1730] border border-[#4f46e5]/30"
+      className="flex items-center gap-1.5 pr-2 py-[4px] rounded-[7px] bg-[var(--lt-accent-muted)] border border-[var(--lt-accent)]/30"
       style={{ paddingLeft: `${6 + level * 14}px` }}
       onClick={e => e.stopPropagation()}
     >
@@ -109,7 +109,7 @@ function InlineFolderRename({ level, renameName, onNameChange, onSave, onCancel,
       <span className="w-4 h-4 shrink-0" />
       {/* checkbox spacer */}
       <span className="w-3.5 h-3.5 shrink-0" />
-      <FolderOpen size={13} className="text-[#818cf8] shrink-0" fill="rgba(129,140,248,0.2)" />
+      <FolderOpen size={13} className="text-[var(--lt-accent-light)] shrink-0" fill="rgba(129,140,248,0.2)" />
       <input
         ref={inputRef}
         value={renameName}
@@ -118,19 +118,19 @@ function InlineFolderRename({ level, renameName, onNameChange, onSave, onCancel,
           if (e.key === 'Escape') { e.preventDefault(); onCancel() }
           if (e.key === 'Enter')  { e.preventDefault(); onSave() }
         }}
-        className="flex-1 min-w-0 px-2 py-0.5 text-xs bg-[#0a0a0a] border border-[#4f46e5] rounded-[5px] text-[#f5f5f5] placeholder-[#6b7280] focus:outline-none"
+        className="flex-1 min-w-0 px-2 py-0.5 text-xs bg-[var(--lt-bg-base)] border border-[var(--lt-accent)] rounded-[5px] text-[var(--lt-text-primary)] placeholder-[var(--lt-text-subtle)] focus:outline-none"
       />
       <button
         type="submit"
         disabled={busy || !renameName.trim()}
-        className="w-5 h-5 flex items-center justify-center rounded-[4px] bg-[#4f46e5] text-white disabled:opacity-40 shrink-0 hover:bg-[#4338ca] transition-colors"
+        className="w-5 h-5 flex items-center justify-center rounded-[4px] bg-[var(--lt-accent)] text-white disabled:opacity-40 shrink-0 hover:bg-[var(--lt-accent-hover)] transition-colors"
       >
         {busy ? <Loader2 size={9} className="animate-spin" /> : <Check size={9} />}
       </button>
       <button
         type="button"
         onClick={onCancel}
-        className="w-5 h-5 flex items-center justify-center rounded-[4px] text-[#6b7280] hover:text-[#f5f5f5] hover:bg-[#262626] shrink-0 transition-colors"
+        className="w-5 h-5 flex items-center justify-center rounded-[4px] text-[var(--lt-text-subtle)] hover:text-[var(--lt-text-primary)] hover:bg-[var(--lt-divider)] shrink-0 transition-colors"
       >
         <X size={9} />
       </button>
@@ -144,9 +144,9 @@ function NewFolderBottomBtn({ level, onClick }) {
     <button
       onClick={onClick}
       style={{ paddingLeft: `${20 + level * 14}px` }}
-      className="group/nbtn flex items-center gap-1.5 w-full py-1.5 pr-3 text-[10px] text-[#3a3a3a] hover:text-[#818cf8] transition-all rounded-[6px] hover:bg-[#0f0f1a]"
+      className="group/nbtn flex items-center gap-1.5 w-full py-1.5 pr-3 text-[10px] text-[var(--lt-text-subtle)] hover:text-[var(--lt-accent-light)] transition-all rounded-[6px] hover:bg-[var(--lt-accent-muted)]"
     >
-      <span className="w-4 h-4 flex items-center justify-center rounded-[4px] border border-[#252525] group-hover/nbtn:border-[#4f46e5]/50 group-hover/nbtn:bg-[#1e1b4b]/60 transition-all shrink-0">
+      <span className="w-4 h-4 flex items-center justify-center rounded-[4px] border border-[var(--lt-divider)] group-hover/nbtn:border-[var(--lt-accent)]/50 group-hover/nbtn:bg-[var(--lt-accent-muted)]/60 transition-all shrink-0">
         <Plus size={8} />
       </span>
       New Folder
@@ -173,9 +173,9 @@ function FolderRow({
       className={cn(
         'group/row flex items-center gap-1.5 pr-2 py-[5px] rounded-[7px] cursor-pointer select-none',
         'transition-all duration-100 relative',
-        isActive      && !isDragOver && 'bg-[#1e1b4b]',
-        isDragOver    && 'bg-[#4f46e5]/20 border border-dashed border-[#4f46e5]/60',
-        !isActive     && !isDragOver && 'hover:bg-[#1c1c1c]',
+        isActive      && !isDragOver && 'bg-[var(--lt-accent-muted)]',
+        isDragOver    && 'bg-[var(--lt-accent)]/20 border border-dashed border-[var(--lt-accent)]/60',
+        !isActive     && !isDragOver && 'hover:bg-[var(--lt-card-hover)]',
         isFilesLoading && 'animate-pulse',
       )}
       style={{ paddingLeft: `${6 + level * 14}px` }}
@@ -183,10 +183,10 @@ function FolderRow({
       {/* Expand arrow */}
       <button
         onClick={e => { e.stopPropagation(); onExpand(folder.path) }}
-        className="w-4 h-4 flex items-center justify-center shrink-0 text-[#6b7280] hover:text-[#a3a3a3]"
+        className="w-4 h-4 flex items-center justify-center shrink-0 text-[var(--lt-text-subtle)] hover:text-[var(--lt-text-muted)]"
       >
         {isLoading
-          ? <Loader2 size={10} className="animate-spin text-[#4f46e5]" />
+          ? <Loader2 size={10} className="animate-spin text-[var(--lt-accent)]" />
           : isExpanded
           ? <ChevronDown  size={11} />
           : <ChevronRight size={11} />
@@ -199,7 +199,7 @@ function FolderRow({
         checked={isChecked}
         onChange={e => { e.stopPropagation(); onCheck(folder.path) }}
         onClick={e => e.stopPropagation()}
-        className="w-3.5 h-3.5 accent-[#4f46e5] shrink-0 cursor-pointer"
+        className="w-3.5 h-3.5 accent-[var(--lt-accent)] shrink-0 cursor-pointer"
       />
 
       {/* Folder icon + name — spinner replaces icon while files load */}
@@ -208,15 +208,15 @@ function FolderRow({
         className="flex items-center gap-1.5 flex-1 min-w-0 py-0.5 text-left"
       >
         {isFilesLoading ? (
-          <Loader2 size={13} className="text-[#4f46e5] animate-spin shrink-0" />
+          <Loader2 size={13} className="text-[var(--lt-accent)] animate-spin shrink-0" />
         ) : isExpanded ? (
-          <FolderOpen size={13} className={isActive ? 'text-[#818cf8]' : 'text-[#4f46e5]'} fill={isActive ? 'rgba(129,140,248,0.2)' : 'rgba(79,70,229,0.12)'} />
+          <FolderOpen size={13} className={isActive ? 'text-[var(--lt-accent-light)]' : 'text-[var(--lt-accent)]'} fill={isActive ? 'rgba(129,140,248,0.2)' : 'rgba(79,70,229,0.12)'} />
         ) : (
-          <Folder size={13} className={isActive ? 'text-[#818cf8]' : 'text-[#4f46e5]'} fill={isActive ? 'rgba(129,140,248,0.2)' : 'rgba(79,70,229,0.12)'} />
+          <Folder size={13} className={isActive ? 'text-[var(--lt-accent-light)]' : 'text-[var(--lt-accent)]'} fill={isActive ? 'rgba(129,140,248,0.2)' : 'rgba(79,70,229,0.12)'} />
         )}
         <span className={cn(
           'text-xs truncate',
-          isActive ? 'text-[#c7d2fe] font-medium' : 'text-[#a3a3a3] group-hover/row:text-[#f5f5f5]'
+          isActive ? 'text-[var(--lt-accent-light)] font-medium' : 'text-[var(--lt-text-muted)] group-hover/row:text-[var(--lt-text-primary)]'
         )}>
           {folder.name}
         </span>
@@ -227,14 +227,14 @@ function FolderRow({
         <button
           onClick={e => { e.stopPropagation(); onInlineRename(folder) }}
           title="Rename"
-          className="w-5 h-5 flex items-center justify-center rounded-[4px] text-[#6b7280] hover:text-[#818cf8] hover:bg-[#1e1b4b] transition-colors"
+          className="w-5 h-5 flex items-center justify-center rounded-[4px] text-[var(--lt-text-subtle)] hover:text-[var(--lt-accent-light)] hover:bg-[var(--lt-accent-muted)] transition-colors"
         >
           <Pencil size={10} />
         </button>
         <button
           onClick={e => { e.stopPropagation(); onDelete(folder) }}
           title="Delete folder"
-          className="w-5 h-5 flex items-center justify-center rounded-[4px] text-[#6b7280] hover:text-[#ef4444] hover:bg-[#450a0a] transition-colors"
+          className="w-5 h-5 flex items-center justify-center rounded-[4px] text-[var(--lt-text-subtle)] hover:text-[#ef4444] hover:bg-[#450a0a] transition-colors"
         >
           <Trash2 size={10} />
         </button>
@@ -242,7 +242,7 @@ function FolderRow({
 
       {/* Active indicator bar */}
       {isActive && (
-        <span className="absolute left-0 top-1 bottom-1 w-0.5 rounded-full bg-[#4f46e5]" />
+        <span className="absolute left-0 top-1 bottom-1 w-0.5 rounded-full bg-[var(--lt-accent)]" />
       )}
     </div>
   )
@@ -355,9 +355,9 @@ function RootNewFolderButton({ onClick }) {
   return (
     <button
       onClick={onClick}
-      className="group/rnf flex items-center gap-2 w-full px-3 py-2 rounded-[8px] border border-dashed border-[#2a2a2a] hover:border-[#4f46e5]/40 text-[#444] hover:text-[#818cf8] hover:bg-[#0f0f1a] transition-all text-[11px] font-medium"
+      className="group/rnf flex items-center gap-2 w-full px-3 py-2 rounded-[8px] border border-dashed border-[var(--lt-divider-light)] hover:border-[var(--lt-accent)]/40 text-[var(--lt-text-subtle)] hover:text-[var(--lt-accent-light)] hover:bg-[var(--lt-accent-muted)] transition-all text-[11px] font-medium"
     >
-      <span className="w-5 h-5 flex items-center justify-center rounded-[5px] border border-[#2a2a2a] group-hover/rnf:border-[#4f46e5]/50 group-hover/rnf:bg-[#1e1b4b]/60 transition-all shrink-0">
+      <span className="w-5 h-5 flex items-center justify-center rounded-[5px] border border-[var(--lt-divider-light)] group-hover/rnf:border-[var(--lt-accent)]/50 group-hover/rnf:bg-[var(--lt-accent-muted)]/60 transition-all shrink-0">
         <Plus size={10} />
       </span>
       New Folder
@@ -383,11 +383,11 @@ function RootFoldersList({
     return (
       <div className="flex flex-col">
         <div className="flex flex-col items-center justify-center py-8 px-5 text-center">
-          <div className="w-14 h-14 rounded-[16px] bg-gradient-to-br from-[#1e1b4b] to-[#0f0f1a] border border-[#4f46e5]/20 flex items-center justify-center mb-3 shadow-lg shadow-[#4f46e5]/10">
-            <Folder size={26} className="text-[#4f46e5]" fill="rgba(79,70,229,0.2)" />
+          <div className="w-14 h-14 rounded-[16px] bg-gradient-to-br from-[var(--lt-accent-muted)] to-[var(--lt-accent-muted)] border border-[var(--lt-accent)]/20 flex items-center justify-center mb-3 shadow-lg shadow-[var(--lt-accent)]/10">
+            <Folder size={26} className="text-[var(--lt-accent)]" fill="rgba(79,70,229,0.2)" />
           </div>
-          <p className="text-xs font-semibold text-[#a3a3a3] mb-1">No folders yet</p>
-          <p className="text-[10px] text-[#444] leading-relaxed">
+          <p className="text-xs font-semibold text-[var(--lt-text-muted)] mb-1">No folders yet</p>
+          <p className="text-[10px] text-[var(--lt-text-subtle)] leading-relaxed">
             Use the button below to create<br />your first folder
           </p>
         </div>
@@ -705,19 +705,19 @@ export default function FolderTree({
     <div className="flex flex-col h-full">
 
       {/* Header — search · select-all · refresh [ · delete when selected ] */}
-      <div className="flex items-center gap-1 px-3 py-2.5 border-b border-[#1e1e1e]">
+      <div className="flex items-center gap-1 px-3 py-2.5 border-b border-[var(--lt-divider)]">
         <div className="relative w-full">
-          <Search size={11} className="absolute left-2 top-1/2 -translate-y-1/2 text-[#6b7280]" />
+          <Search size={11} className="absolute left-2 top-1/2 -translate-y-1/2 text-[var(--lt-text-subtle)]" />
           <input
             value={search}
             onChange={e => setSearch(e.target.value)}
             placeholder="Search folders…"
-            className="w-full pl-6 pr-6 h-7 bg-[#111111] border border-[#262626] rounded-[6px] text-xs text-[#f5f5f5] placeholder-[#6b7280] focus:outline-none focus:border-[#4f46e5] transition-colors"
+            className="w-full pl-6 pr-6 h-7 bg-[var(--lt-surface)] border border-[var(--lt-divider)] rounded-[6px] text-xs text-[var(--lt-text-primary)] placeholder-[var(--lt-text-subtle)] focus:outline-none focus:border-[var(--lt-accent)] transition-colors"
           />
           {search && (
             <button
               onClick={() => setSearch('')}
-              className="absolute right-1.5 top-1/2 -translate-y-1/2 text-[#6b7280] hover:text-[#f5f5f5]"
+              className="absolute right-1.5 top-1/2 -translate-y-1/2 text-[var(--lt-text-subtle)] hover:text-[var(--lt-text-primary)]"
             >
               <X size={10} />
             </button>
@@ -729,8 +729,8 @@ export default function FolderTree({
           className={cn(
             'w-6 h-6 flex items-center justify-center rounded-[6px] transition-colors shrink-0',
             allSelected
-              ? 'text-[#818cf8] bg-[#1e1b4b] hover:bg-[#2d2a6e]'
-              : 'text-[#6b7280] hover:text-[#f5f5f5] hover:bg-[#1c1c1c]'
+              ? 'text-[var(--lt-accent-light)] bg-[var(--lt-accent-muted)] hover:bg-[var(--lt-accent-muted)]/70'
+              : 'text-[var(--lt-text-subtle)] hover:text-[var(--lt-text-primary)] hover:bg-[var(--lt-card-hover)]'
           )}
         >
           <CheckSquare size={12} />
@@ -738,7 +738,7 @@ export default function FolderTree({
         <button
           onClick={handleRefresh}
           title="Refresh folders"
-          className="w-6 h-6 flex items-center justify-center rounded-[6px] text-[#6b7280] hover:text-[#4f46e5] hover:bg-[#1c1c1c] transition-colors shrink-0"
+          className="w-6 h-6 flex items-center justify-center rounded-[6px] text-[var(--lt-text-subtle)] hover:text-[var(--lt-accent)] hover:bg-[var(--lt-card-hover)] transition-colors shrink-0"
         >
           <RefreshCw size={12} />
         </button>
@@ -753,7 +753,7 @@ export default function FolderTree({
               'flex items-center gap-1 h-6 px-1.5 rounded-[6px] transition-colors text-[10px] font-semibold shrink-0',
               checkedFolders.size > 0
                 ? 'bg-[#450a0a] text-[#ef4444] hover:bg-[#6b1212] cursor-pointer'
-                : 'bg-[#111] border border-[#262626] text-[#333] cursor-not-allowed'
+                : 'bg-[var(--lt-surface)] border border-[var(--lt-divider)] text-[var(--lt-text-subtle)] cursor-not-allowed'
             )}
           >
             <Trash2 size={10} />
@@ -763,10 +763,10 @@ export default function FolderTree({
       </div>
 
       {/* Shimmer bar — shown while right-panel files are loading */}
-      <div className="h-[2px] overflow-hidden bg-[#111] shrink-0">
+      <div className="h-[2px] overflow-hidden bg-[var(--lt-surface)] shrink-0">
         {filesLoading && (
           <motion.div
-            className="h-full w-2/5 bg-gradient-to-r from-transparent via-[#4f46e5] to-transparent"
+            className="h-full w-2/5 bg-gradient-to-r from-transparent via-[var(--lt-accent)] to-transparent"
             animate={{ x: ['-100%', '350%'] }}
             transition={{ repeat: Infinity, duration: 1.3, ease: 'linear' }}
           />
@@ -779,10 +779,10 @@ export default function FolderTree({
           <div className="py-2 px-1 space-y-0.5">
             {[28, 20, 36, 16, 24, 32].map((w, i) => (
               <div key={i} className="flex items-center gap-1.5 px-2 py-[5px] rounded-[7px] animate-pulse">
-                <div className="w-4 h-4 rounded bg-[#1e1e1e] shrink-0" />
-                <div className="w-3.5 h-3.5 rounded bg-[#1e1e1e] shrink-0" />
-                <div className="w-3.5 h-3.5 rounded-[3px] bg-[#1e1e1e] shrink-0" />
-                <div className={`h-2.5 rounded bg-[#1e1e1e]`} style={{ width: `${w * 3}px` }} />
+                <div className="w-4 h-4 rounded bg-[var(--lt-divider)] shrink-0" />
+                <div className="w-3.5 h-3.5 rounded bg-[var(--lt-divider)] shrink-0" />
+                <div className="w-3.5 h-3.5 rounded-[3px] bg-[var(--lt-divider)] shrink-0" />
+                <div className={`h-2.5 rounded bg-[var(--lt-divider)]`} style={{ width: `${w * 3}px` }} />
               </div>
             ))}
           </div>
@@ -819,14 +819,14 @@ export default function FolderTree({
 
       {/* Footer: loading indicator / checked count */}
       {(filesLoading || checkedFolders.size > 0) && (
-        <div className="px-3 py-2 border-t border-[#1e1e1e] flex items-center gap-2">
+        <div className="px-3 py-2 border-t border-[var(--lt-divider)] flex items-center gap-2">
           {filesLoading ? (
             <>
-              <Loader2 size={10} className="animate-spin text-[#4f46e5] shrink-0" />
-              <span className="text-[10px] text-[#4f46e5]">Loading files…</span>
+              <Loader2 size={10} className="animate-spin text-[var(--lt-accent)] shrink-0" />
+              <span className="text-[10px] text-[var(--lt-accent)]">Loading files…</span>
             </>
           ) : (
-            <p className="text-[10px] text-[#6b7280]">
+            <p className="text-[10px] text-[var(--lt-text-subtle)]">
               {checkedFolders.size} folder{checkedFolders.size > 1 ? 's' : ''} selected
               {checkedFolders.size > 1 && (
                 <span className="text-[#f59e0b] ml-1">· multi-view mode</span>

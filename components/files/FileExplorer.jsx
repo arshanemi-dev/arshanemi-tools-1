@@ -9,6 +9,7 @@ import { useState, useEffect, useCallback, useMemo, useRef } from 'react'
 import {
   Search, X, RefreshCw, PanelLeftClose, PanelLeftOpen,
   Upload, Trash2, Table2, List as ListIcon, Loader2, Layers2, Copy, Clock,
+  FolderOpen, FileX,
 } from 'lucide-react';
 
 import { useFiles }           from '@/hooks/useFiles'
@@ -77,21 +78,21 @@ function RightToolbar({
   const hasAnySelected  = selectedCount > 0
 
   return (
-    <div className="flex items-center gap-2 px-4 py-2.5 border-b border-[#1e1e1e] bg-[#0d0d0d] shrink-0">
+    <div className="flex items-center gap-2 px-4 py-2.5 border-b border-[var(--lt-divider)] bg-[var(--lt-surface)] shrink-0">
 
       {/* Search */}
       <div className="relative w-52 shrink-0">
-        <Search size={13} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-[#6b7280]" />
+        <Search size={13} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-[var(--lt-text-subtle)]" />
         <input
           value={search}
           onChange={e => onSearchChange(e.target.value)}
           placeholder="Search files…"
-          className="w-full pl-8 pr-7 h-8 bg-[#111111] border border-[#262626] rounded-[8px] text-xs text-[#f5f5f5] placeholder-[#6b7280] focus:outline-none focus:border-[#4f46e5] transition-colors"
+          className="w-full pl-8 pr-7 h-8 bg-[var(--lt-surface)] border border-[var(--lt-divider)] rounded-[8px] text-xs text-[var(--lt-text-primary)] placeholder-[var(--lt-text-subtle)] focus:outline-none focus:border-[var(--lt-accent)] transition-colors"
         />
         {search && (
           <button
             onClick={() => onSearchChange('')}
-            className="absolute right-2 top-1/2 -translate-y-1/2 text-[#6b7280] hover:text-[#f5f5f5]"
+            className="absolute right-2 top-1/2 -translate-y-1/2 text-[var(--lt-text-subtle)] hover:text-[var(--lt-text-primary)]"
           >
             <X size={12} />
           </button>
@@ -100,10 +101,10 @@ function RightToolbar({
 
       {/* File / selection count */}
       {fileCount > 0 && (
-        <span className="text-[10px] text-[#6b7280] shrink-0 whitespace-nowrap">
+        <span className="text-[10px] text-[var(--lt-text-subtle)] shrink-0 whitespace-nowrap">
           {fileCount} file{fileCount !== 1 ? 's' : ''}
           {hasSelection && (
-            <span className="text-[#818cf8] ml-1">· {selectedCount} selected</span>
+            <span className="text-[var(--lt-accent-light)] ml-1">· {selectedCount} selected</span>
           )}
         </span>
       )}
@@ -115,8 +116,8 @@ function RightToolbar({
         className={cn(
           'flex items-center gap-1.5 px-2.5 h-8 text-[11px] rounded-[8px] font-medium border transition-all shrink-0',
           multiSelectMode
-            ? 'bg-[#1e1b4b] border-[#4f46e5]/60 text-[#818cf8] hidden'
-            : 'bg-transparent border-[#222] text-[#3a3a3a] hover:border-[#333] hover:text-[#6b7280] hidden'
+            ? 'bg-[var(--lt-accent-muted)] border-[var(--lt-accent)]/60 text-[var(--lt-accent-light)] hidden'
+            : 'bg-transparent border-[#222] text-[var(--lt-text-subtle)] hover:border-[#333] hover:text-[var(--lt-text-subtle)] hidden'
         )}
       >
         <Layers2 size={12} />
@@ -127,7 +128,7 @@ function RightToolbar({
 
       {/* Group size selector */}
       <div className="flex items-center gap-1 shrink-0">
-        <span className="text-[10px] text-[#444] mr-0.5">Group</span>
+        <span className="text-[10px] text-[var(--lt-text-subtle)] mr-0.5">Group</span>
         {GROUP_SIZES.map(n => (
           <button
             key={n}
@@ -137,8 +138,8 @@ function RightToolbar({
             className={cn(
               'w-6 h-6 rounded-[5px] text-[11px] font-semibold transition-all',
               groupSize === n&& hasSelection
-                ? 'bg-[#4f46e5] text-white'
-                : 'bg-[#111] border border-[#262626] text-[#6b7280] hover:border-[#4f46e5] hover:text-[#f5f5f5]'+(hasSelection ? '' : 'bg-[#111] border border-[#262626] text-[#2a2a2a] cursor-not-allowed')
+                ? 'bg-[var(--lt-accent)] text-white'
+                : 'bg-[var(--lt-surface)] border border-[var(--lt-divider)] text-[var(--lt-text-subtle)] hover:border-[var(--lt-accent)] hover:text-[var(--lt-text-primary)]'+(hasSelection ? '' : 'bg-[var(--lt-surface)] border border-[var(--lt-divider)] text-[var(--lt-divider-light)] cursor-not-allowed')
             )}
           >
             {n}
@@ -156,8 +157,8 @@ function RightToolbar({
           copyingExcel
             ? 'bg-[#064e3b] border-[#10b981]/40 text-[#10b981]'
             : hasSelection
-            ? 'bg-[#111111] border-[#333333] text-[#a3a3a3] hover:border-[#4f46e5] hover:text-[#f5f5f5]'
-            : 'bg-transparent border-[#1e1e1e] text-[#2a2a2a] cursor-not-allowed'
+            ? 'bg-[var(--lt-surface)] border-[var(--lt-divider-light)] text-[var(--lt-text-muted)] hover:border-[var(--lt-accent)] hover:text-[var(--lt-text-primary)]'
+            : 'bg-transparent border-[var(--lt-divider)] text-[var(--lt-divider-light)] cursor-not-allowed'
         )}
       >
         {copyingExcel ? <Loader2 size={12} className="animate-spin" /> : <Table2 size={12} />}
@@ -174,8 +175,8 @@ function RightToolbar({
           copyingNames
             ? 'bg-[#064e3b] border-[#10b981]/40 text-[#10b981]'
             : hasSelection
-            ? 'bg-[#111111] border-[#333333] text-[#a3a3a3] hover:border-[#10b981]/60 hover:text-[#10b981]'
-            : 'bg-transparent border-[#1e1e1e] text-[#2a2a2a] cursor-not-allowed'
+            ? 'bg-[var(--lt-surface)] border-[var(--lt-divider-light)] text-[var(--lt-text-muted)] hover:border-[#10b981]/60 hover:text-[#10b981]'
+            : 'bg-transparent border-[var(--lt-divider)] text-[var(--lt-divider-light)] cursor-not-allowed'
         )}
       >
         {copyingNames ? <Loader2 size={12} className="animate-spin" /> : <Copy size={12} />}
@@ -192,8 +193,8 @@ function RightToolbar({
           copyingList
             ? 'bg-[#064e3b] border-[#10b981]/40 text-[#10b981]'
             : hasSelection
-            ? 'bg-[#111111] border-[#333333] text-[#a3a3a3] hover:border-[#4f46e5] hover:text-[#f5f5f5]'
-            : 'bg-transparent border-[#1e1e1e] text-[#2a2a2a] cursor-not-allowed'
+            ? 'bg-[var(--lt-surface)] border-[var(--lt-divider-light)] text-[var(--lt-text-muted)] hover:border-[var(--lt-accent)] hover:text-[var(--lt-text-primary)]'
+            : 'bg-transparent border-[var(--lt-divider)] text-[var(--lt-divider-light)] cursor-not-allowed'
         )}
       >
         {copyingList ? <Loader2 size={12} className="animate-spin" /> : <ListIcon size={12} />}
@@ -208,8 +209,8 @@ function RightToolbar({
         className={cn(
           'flex items-center gap-1.5 px-2.5 h-8 text-xs rounded-[8px] font-medium border transition-all shrink-0',
           hasSelection
-            ? 'bg-[#1e1b4b] border-[#4f46e5]/40 text-[#818cf8] hover:bg-[#2d2a6e]'
-            : 'bg-transparent border-[#1e1e1e] text-[#2a2a2a] cursor-not-allowed'
+            ? 'bg-[var(--lt-accent-muted)] border-[var(--lt-accent)]/40 text-[var(--lt-accent-light)] hover:bg-[var(--lt-accent-muted)]/70'
+            : 'bg-transparent border-[var(--lt-divider)] text-[var(--lt-divider-light)] cursor-not-allowed'
         )}
       >
         <Clock size={12} />
@@ -226,7 +227,7 @@ function RightToolbar({
             ? 'bg-[#450a0a] text-[#ef4444] opacity-70 cursor-not-allowed'
             : hasSelection
             ? 'bg-[#450a0a] text-[#ef4444] hover:bg-[#6b1212]'
-            : 'bg-[#111] border border-[#262626] text-[#2a2a2a] cursor-not-allowed'
+            : 'bg-[var(--lt-surface)] border border-[var(--lt-divider)] text-[var(--lt-divider-light)] cursor-not-allowed'
         )}
       >
         {deleting ? <Loader2 size={12} className="animate-spin" /> : <Trash2 size={12} />}
@@ -244,8 +245,8 @@ function RightToolbar({
         className={cn(
           'flex items-center gap-1.5 px-3 h-8 text-xs rounded-[8px] font-medium transition-all shrink-0',
           uploadDisabled
-            ? 'bg-[#1c1c1c] text-[#6b7280] cursor-not-allowed opacity-50'
-            : 'bg-[#4f46e5] hover:bg-[#4338ca] text-white shadow-sm'
+            ? 'bg-[var(--lt-card-hover)] text-[var(--lt-text-subtle)] cursor-not-allowed opacity-50'
+            : 'bg-[var(--lt-accent)] hover:bg-[var(--lt-accent-hover)] text-white shadow-sm'
         )}
       >
         <Upload size={12} />
@@ -314,6 +315,18 @@ export default function FileExplorer({ path: pathSegments = [] }) {
   }, [authed, userRoot, treeRootPath])
 
   const { folders: sidebarRootFolders, loading: sidebarLoading, refetch: refetchSidebar } = useFiles(treeRootPath)
+
+  // Auto-select the first folder once on initial load — guard with a ref so
+  // subsequent sidebar refreshes (new folder created, etc.) don't jump back.
+  const autoSelectedRef = useRef(false)
+  useEffect(() => {
+    if (autoSelectedRef.current) return
+    if (!sidebarRootFolders?.length) return
+    autoSelectedRef.current = true
+    const first = sidebarRootFolders[0]
+    setActiveFolderPath(first.path)
+    setCurrentPath(first.path)
+  }, [sidebarRootFolders])
 
   const [toasts, setToasts] = useState([])
   const toast = useCallback((message, type = 'info') => {
@@ -758,7 +771,7 @@ export default function FileExplorer({ path: pathSegments = [] }) {
 
   if (!checked) {
     return (
-      <div className="min-h-screen bg-[#0a0a0a] flex items-center justify-center">
+      <div className="min-h-screen bg-[var(--lt-bg-base)] flex items-center justify-center">
         <Spinner size="lg" />
       </div>
     )
@@ -772,34 +785,34 @@ export default function FileExplorer({ path: pathSegments = [] }) {
   }
 
   return (
-    <div className="relative flex flex-col h-full bg-[#0a0a0a] overflow-hidden">
+    <div className="relative flex flex-col h-full bg-[var(--lt-bg-base)] overflow-hidden">
       <DropZone onDrop={uploadDisabled ? null : uploadFiles} currentPath={activeFolderPath} />
 
       {/* Top context bar */}
-      <div className="hidden flex items-center gap-2 px-3 h-10 border-b border-[#1a1a1a] bg-[#0d0d0d] shrink-0 z-10">
+      <div className="hidden flex items-center gap-2 px-3 h-10 border-b border-[var(--lt-divider)] bg-[var(--lt-surface)] shrink-0 z-10">
         <button
           onClick={() => setSidebarOpen(v => !v)}
-          className="p-1.5 rounded-[6px] text-[#6b7280] hover:text-[#f5f5f5] hover:bg-[#1c1c1c] transition-colors"
+          className="p-1.5 rounded-[6px] text-[var(--lt-text-subtle)] hover:text-[var(--lt-text-primary)] hover:bg-[var(--lt-card-hover)] transition-colors"
           title={sidebarOpen ? 'Collapse sidebar' : 'Expand sidebar'}
         >
           {sidebarOpen ? <PanelLeftClose size={14} /> : <PanelLeftOpen size={14} />}
         </button>
 
         {activeFolderPath != null && (
-          <span className="text-xs text-[#6b7280] truncate font-mono">
+          <span className="text-xs text-[var(--lt-text-subtle)] truncate font-mono">
             {activeFolderPath || '/root'}
           </span>
         )}
 
         {checkedFolders.size > 1 && (
-          <span className="px-2 py-0.5 rounded-full text-[10px] font-semibold bg-[#1e1b4b] text-[#818cf8] border border-[#4f46e5]/30 shrink-0">
+          <span className="px-2 py-0.5 rounded-full text-[10px] font-semibold bg-[var(--lt-accent-muted)] text-[var(--lt-accent-light)] border border-[var(--lt-accent)]/30 shrink-0">
             {checkedFolders.size} folders merged
           </span>
         )}
 
         <button
           onClick={refetchRoot}
-          className="ml-auto p-1.5 rounded-[6px] text-[#6b7280] hover:text-[#4f46e5] hover:bg-[#1c1c1c] transition-colors"
+          className="ml-auto p-1.5 rounded-[6px] text-[var(--lt-text-subtle)] hover:text-[var(--lt-accent)] hover:bg-[var(--lt-card-hover)] transition-colors"
           title="Refresh"
         >
           <RefreshCw size={13} />
@@ -814,7 +827,7 @@ export default function FileExplorer({ path: pathSegments = [] }) {
           <>
             <div
               style={{ width: sidebarWidth, minWidth: 180, maxWidth: 680 }}
-              className="shrink-0 bg-[#0d0d0d] flex flex-col overflow-hidden"
+              className="shrink-0 bg-[var(--lt-surface)] flex flex-col overflow-hidden"
             >
               <FolderTree
                 rootFolders={sidebarRootFolders}
@@ -838,7 +851,7 @@ export default function FileExplorer({ path: pathSegments = [] }) {
             {/* Drag-to-resize handle */}
             <div
               onMouseDown={handleResizeStart}
-              className="w-1 shrink-0 bg-[#1a1a1a] hover:bg-[#4f46e5] active:bg-[#4f46e5] cursor-col-resize transition-colors"
+              className="w-1 shrink-0 bg-[var(--lt-divider)] hover:bg-[var(--lt-accent)] active:bg-[var(--lt-accent)] cursor-col-resize transition-colors"
               title="Drag to resize"
             />
           </>
@@ -896,6 +909,36 @@ export default function FileExplorer({ path: pathSegments = [] }) {
               <div className="flex items-center justify-center py-32">
                 <Spinner size="lg" />
               </div>
+
+            ) : activeFolderPath === null ? (
+              /* ── No folder selected (fresh load / after refresh) ── */
+              <div className="flex flex-col items-center justify-center py-32 gap-4 select-none">
+                <div className="w-16 h-16 rounded-2xl bg-[var(--lt-surface)] border border-[var(--lt-divider)] flex items-center justify-center">
+                  <FolderOpen size={28} className="text-[var(--lt-divider-light)]" />
+                </div>
+                <div className="text-center space-y-1">
+                  <p className="text-sm font-medium text-[var(--lt-text-subtle)]">No folder selected</p>
+                  <p className="text-xs text-[var(--lt-divider-light)]">Choose a folder from the left panel to view its files</p>
+                </div>
+              </div>
+
+            ) : !loading && filteredFiles.length === 0 ? (
+              /* ── Folder selected but empty ── */
+              <div className="flex flex-col items-center justify-center py-32 gap-4 select-none">
+                <div className="w-16 h-16 rounded-2xl bg-[var(--lt-surface)] border border-[var(--lt-divider)] flex items-center justify-center">
+                  <FileX size={28} className="text-[var(--lt-divider-light)]" />
+                </div>
+                <div className="text-center space-y-1">
+                  <p className="text-sm font-medium text-[var(--lt-text-subtle)]">No files in this folder</p>
+                  <p className="text-xs text-[var(--lt-divider-light)]">This folder is empty — upload files using the</p>
+                  <p className="text-xs text-[var(--lt-divider-light)] flex items-center justify-center gap-1">
+                    <Upload size={11} className="text-[var(--lt-accent)]" />
+                    <span className="text-[var(--lt-accent)] font-medium">Upload</span>
+                    button in the toolbar above
+                  </p>
+                </div>
+              </div>
+
             ) : view === 'grid' ? (
               <FileGrid
                 folders={[]}
@@ -1009,7 +1052,7 @@ export default function FileExplorer({ path: pathSegments = [] }) {
               'px-4 py-2.5 rounded-[8px] text-sm font-medium shadow-xl animate-slideUp pointer-events-auto',
               t.type === 'success' && 'bg-[#064e3b] text-[#10b981] border border-[#10b981]/30',
               t.type === 'error'   && 'bg-[#450a0a] text-[#ef4444] border border-[#ef4444]/30',
-              t.type === 'info'    && 'bg-[#1e1b4b] text-[#818cf8] border border-[#4f46e5]/30',
+              t.type === 'info'    && 'bg-[var(--lt-accent-muted)] text-[var(--lt-accent-light)] border border-[var(--lt-accent)]/30',
             )}
           >
             {t.message}

@@ -94,8 +94,8 @@ export default function ExpiryPicker({ initialValue, onChange }) {
           className={cn(
             'flex items-center gap-1.5 px-3 py-1.5 text-[11px] font-medium rounded-[7px] border transition-all',
             mode === 'date'
-              ? 'bg-[#1e1b4b] border-[#4f46e5]/60 text-[#818cf8]'
-              : 'bg-transparent border-[#2a2a2a] text-[#555] hover:border-[#333] hover:text-[#a3a3a3]'
+              ? 'bg-[var(--lt-accent-muted)] border-[var(--lt-accent)]/60 text-[var(--lt-accent-light)]'
+              : 'bg-transparent border-[var(--lt-divider-light)] text-[#555] hover:border-[#333] hover:text-[var(--lt-text-muted)]'
           )}
         >
           <Calendar size={11} />
@@ -108,8 +108,8 @@ export default function ExpiryPicker({ initialValue, onChange }) {
           className={cn(
             'flex items-center gap-1.5 px-3 py-1.5 text-[11px] font-medium rounded-[7px] border transition-all',
             mode === 'quick'
-              ? 'bg-[#1e1b4b] border-[#4f46e5]/60 text-[#818cf8]'
-              : 'bg-transparent border-[#2a2a2a] text-[#555] hover:border-[#333] hover:text-[#a3a3a3]'
+              ? 'bg-[var(--lt-accent-muted)] border-[var(--lt-accent)]/60 text-[var(--lt-accent-light)]'
+              : 'bg-transparent border-[var(--lt-divider-light)] text-[#555] hover:border-[#333] hover:text-[var(--lt-text-muted)]'
           )}
         >
           <Zap size={11} />
@@ -124,7 +124,7 @@ export default function ExpiryPicker({ initialValue, onChange }) {
           value={dateInput}
           min={today}
           onChange={e => handleDateChange(e.target.value)}
-          className="w-full bg-[#161616] border border-[#262626] rounded-[8px] px-3 py-2 text-sm text-[#f5f5f5] focus:outline-none focus:ring-1 focus:ring-[#4f46e5]/60"
+          className="w-full bg-[var(--lt-card)] border border-[var(--lt-divider)] rounded-[8px] px-3 py-2 text-sm text-[var(--lt-text-primary)] focus:outline-none focus:ring-1 focus:ring-[var(--lt-accent)]/60"
         />
       )}
 
@@ -141,8 +141,8 @@ export default function ExpiryPicker({ initialValue, onChange }) {
                 className={cn(
                   'flex items-center gap-1.5 px-3 py-1.5 text-[11px] font-medium rounded-[7px] border transition-all',
                   active
-                    ? 'bg-[#4f46e5] border-[#4f46e5] text-white'
-                    : 'bg-[#111111] border-[#262626] text-[#a3a3a3] hover:border-[#4f46e5]/50 hover:text-[#818cf8]'
+                    ? 'bg-[var(--lt-accent)] border-[var(--lt-accent)] text-white'
+                    : 'bg-[var(--lt-surface)] border-[var(--lt-divider)] text-[var(--lt-text-muted)] hover:border-[var(--lt-accent)]/50 hover:text-[var(--lt-accent-light)]'
                 )}
               >
                 {active && <Check size={10} className="shrink-0" />}
@@ -155,9 +155,9 @@ export default function ExpiryPicker({ initialValue, onChange }) {
 
       {/* ── Preview ───────────────────────────────────────────── */}
       {isoValue && (
-        <p className="text-[10px] text-[#6b7280] flex items-center gap-1">
+        <p className="text-[10px] text-[var(--lt-text-subtle)] flex items-center gap-1">
           Expires on:
-          <span className="text-[#818cf8] font-medium">{formatPreview(isoValue)}</span>
+          <span className="text-[var(--lt-accent-light)] font-medium">{formatPreview(isoValue)}</span>
         </p>
       )}
     </div>

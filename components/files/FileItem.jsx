@@ -15,7 +15,7 @@ function ExpiryBadge({ expiryAt, onEdit }) {
     ? 'bg-red-500/20 text-red-400'
     : days <= 7
     ? 'bg-amber-500/20 text-amber-400'
-    : 'bg-[#1e1b4b] text-[#818cf8]'
+    : 'bg-[var(--lt-accent-muted)] text-[var(--lt-accent-light)]'
 
   return (
     <button
@@ -44,21 +44,21 @@ const TYPE_ICONS = {
 }
 
 const TYPE_COLORS = {
-  image:        'text-[#818cf8]',
+  image:        'text-[var(--lt-accent-light)]',
   video:        'text-[#f59e0b]',
   audio:        'text-[#10b981]',
   pdf:          'text-[#ef4444]',
   doc:          'text-[#3b82f6]',
   spreadsheet:  'text-[#10b981]',
   presentation: 'text-[#f97316]',
-  archive:      'text-[#a3a3a3]',
+  archive:      'text-[var(--lt-text-muted)]',
   code:         'text-[#06b6d4]',
 }
 
 function FileTypeIcon({ name, size = 20, className }) {
   const type = getFileType(name)
   const Icon = TYPE_ICONS[type] ?? File
-  return <Icon size={size} className={cn(TYPE_COLORS[type] ?? 'text-[#6b7280]', className)} />
+  return <Icon size={size} className={cn(TYPE_COLORS[type] ?? 'text-[var(--lt-text-subtle)]', className)} />
 }
 
 function isVideo(name) {
@@ -108,8 +108,8 @@ function GridImageThumb({ path, name }) {
     <div className="w-full h-full relative flex items-center justify-center">
       {/* Loader shown while image is in-flight */}
       {(status === 'loading' || fetchingUrl) && (
-        <div className="absolute inset-0 flex items-center justify-center bg-[#111111] z-10">
-          <Loader2 size={18} className="animate-spin text-[#4f46e5]" />
+        <div className="absolute inset-0 flex items-center justify-center bg-[var(--lt-surface)] z-10">
+          <Loader2 size={18} className="animate-spin text-[var(--lt-accent)]" />
         </div>
       )}
 
@@ -163,7 +163,7 @@ function ListImageThumb({ path, name }) {
   return (
     <>
       {status === 'loading' && (
-        <Loader2 size={12} className="animate-spin text-[#6b7280] absolute" />
+        <Loader2 size={12} className="animate-spin text-[var(--lt-text-subtle)] absolute" />
       )}
       <img
         key={src}
@@ -207,29 +207,29 @@ export default function FileItem({
           'flex items-center gap-3 px-3 py-2 rounded-[8px] cursor-pointer select-none',
           'border transition-all duration-100 group',
           isSelected
-            ? 'bg-[#1e1b4b] border-[#4f46e5]/60'
-            : 'bg-transparent border-transparent hover:bg-[#1c1c1c] hover:border-[#333333]',
+            ? 'bg-[var(--lt-accent-muted)] border-[var(--lt-accent)]/60'
+            : 'bg-transparent border-transparent hover:bg-[var(--lt-card-hover)] hover:border-[var(--lt-divider-light)]',
           isCut && 'opacity-50'
         )}
       >
         {/* Thumbnail / icon */}
-        <div className="relative w-8 h-8 shrink-0 flex items-center justify-center rounded-[6px] bg-[#161616] overflow-hidden">
+        <div className="relative w-8 h-8 shrink-0 flex items-center justify-center rounded-[6px] bg-[var(--lt-card)] overflow-hidden">
           {isFolder ? (
-            <Folder size={18} className="text-[#4f46e5]" fill="rgba(79,70,229,0.2)" />
+            <Folder size={18} className="text-[var(--lt-accent)]" fill="rgba(79,70,229,0.2)" />
           ) : isImage(item.name) ? (
             <ListImageThumb path={item.path} name={item.name} />
           ) : (
             <FileTypeIcon name={item.name} size={16} />
           )}
           {selectionIndex != null && (
-            <span className="absolute -top-1.5 -right-1.5 min-w-[16px] h-4 px-0.5 rounded-full bg-[#4f46e5] text-white text-[9px] font-bold flex items-center justify-center shadow-lg z-10">
+            <span className="absolute -top-1.5 -right-1.5 min-w-[16px] h-4 px-0.5 rounded-full bg-[var(--lt-accent)] text-white text-[9px] font-bold flex items-center justify-center shadow-lg z-10">
               {selectionIndex}
             </span>
           )}
         </div>
 
         {/* Name */}
-        <span className="flex-1 text-sm text-[#f5f5f5] truncate">{item.name}</span>
+        <span className="flex-1 text-sm text-[var(--lt-text-primary)] truncate">{item.name}</span>
 
         {/* Meta */}
         <div className="flex items-center gap-3 shrink-0">
@@ -237,20 +237,20 @@ export default function FileItem({
             <ExpiryBadge expiryAt={expiryRecord.expiryAt ?? expiryRecord.expiry_at} onEdit={onEditExpiry} />
           )}
           {item.folderSource && (
-            <span className="text-[10px] px-1.5 py-0.5 rounded bg-[#1e1b4b] text-[#818cf8] hidden sm:block">
+            <span className="text-[10px] px-1.5 py-0.5 rounded bg-[var(--lt-accent-muted)] text-[var(--lt-accent-light)] hidden sm:block">
               {item.folderSource}
             </span>
           )}
           {item.modified && (
-            <span className="text-xs text-[#6b7280] hidden sm:block">
+            <span className="text-xs text-[var(--lt-text-subtle)] hidden sm:block">
               {new Date(item.modified).toLocaleDateString()}
             </span>
           )}
           {item.size != null && (
-            <span className="text-xs text-[#6b7280] w-16 text-right">{formatBytes(item.size)}</span>
+            <span className="text-xs text-[var(--lt-text-subtle)] w-16 text-right">{formatBytes(item.size)}</span>
           )}
           {isFolder && (
-            <span className="text-xs text-[#6b7280] w-16 text-right">Folder</span>
+            <span className="text-xs text-[var(--lt-text-subtle)] w-16 text-right">Folder</span>
           )}
         </div>
       </div>
@@ -267,21 +267,21 @@ export default function FileItem({
         'relative flex flex-col items-center gap-2 p-3 rounded-[10px] cursor-pointer select-none',
         'border transition-all duration-100 group',
         isSelected
-          ? 'bg-[#1e1b4b] border-[#4f46e5]/70'
-          : 'bg-[#161616] border-[#262626] hover:bg-[#1c1c1c] hover:border-[#333333]',
+          ? 'bg-[var(--lt-accent-muted)] border-[var(--lt-accent)]/70'
+          : 'bg-[var(--lt-card)] border-[var(--lt-divider)] hover:bg-[var(--lt-card-hover)] hover:border-[var(--lt-divider-light)]',
         isCut && 'opacity-50'
       )}
     >
       {selectionIndex != null && (
-        <span className="absolute top-1.5 right-1.5 min-w-[20px] h-5 px-1 rounded-full bg-[#4f46e5] text-white text-[10px] font-bold flex items-center justify-center shadow-lg z-10 ring-2 ring-[#1e1b4b]">
+        <span className="absolute top-1.5 right-1.5 min-w-[20px] h-5 px-1 rounded-full bg-[var(--lt-accent)] text-white text-[10px] font-bold flex items-center justify-center shadow-lg z-10 ring-2 ring-[var(--lt-accent-muted)]">
           {selectionIndex}
         </span>
       )}
 
       {/* Thumbnail / icon area */}
-      <div className="w-full aspect-square rounded-[8px] flex items-center justify-center overflow-hidden bg-[#111111] relative">
+      <div className="w-full aspect-square rounded-[8px] flex items-center justify-center overflow-hidden bg-[var(--lt-surface)] relative">
         {isFolder ? (
-          <Folder size={40} className="text-[#4f46e5]" fill="rgba(79,70,229,0.18)" />
+          <Folder size={40} className="text-[var(--lt-accent)]" fill="rgba(79,70,229,0.18)" />
         ) : isImage(item.name) ? (
           <GridImageThumb path={item.path} name={item.name} />
         ) : isVideo(item.name) ? (
@@ -294,21 +294,21 @@ export default function FileItem({
         )}
 
         {item.folderSource && (
-          <span className="absolute bottom-1 left-1 text-[8px] px-1 py-0.5 rounded bg-[#0a0a0a]/80 text-[#818cf8] leading-none">
+          <span className="absolute bottom-1 left-1 text-[8px] px-1 py-0.5 rounded bg-[var(--lt-bg-base)]/80 text-[var(--lt-accent-light)] leading-none">
             {item.folderSource}
           </span>
         )}
       </div>
 
       {/* Name — shortened (Task 7) */}
-      <span className="text-xs text-[#f5f5f5] text-center truncate w-full leading-tight">
+      <span className="text-xs text-[var(--lt-text-primary)] text-center truncate w-full leading-tight">
         {item.name.length > 18 ? item.name.slice(0, 16) + '…' : item.name}
       </span>
 
       {item.size != null ? (
-        <span className="text-[10px] text-[#6b7280]">{formatBytes(item.size)}</span>
+        <span className="text-[10px] text-[var(--lt-text-subtle)]">{formatBytes(item.size)}</span>
       ) : isFolder ? (
-        <span className="text-[10px] text-[#4f46e5]">Folder</span>
+        <span className="text-[10px] text-[var(--lt-accent)]">Folder</span>
       ) : null}
 
       {expiryRecord && (

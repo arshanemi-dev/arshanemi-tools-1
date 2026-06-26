@@ -38,7 +38,7 @@ export default function Modal({ open, onClose, title, children, size = 'md', cla
             exit={{ opacity: 0, scale: 0.95, y: 12 }}
             transition={{ duration: 0.2, ease: [0.16, 1, 0.3, 1] }}
             className={cn(
-              'relative z-10 w-full rounded-[12px] bg-[#161616] border border-[#262626]',
+              'relative z-10 w-full rounded-[12px] bg-[var(--lt-card)] border border-[var(--lt-divider)]',
               'shadow-2xl shadow-black/60 flex flex-col',
               widths[size] ?? widths.md,
               className
@@ -46,11 +46,11 @@ export default function Modal({ open, onClose, title, children, size = 'md', cla
           >
             {/* Header */}
             {title && (
-              <div className="flex items-center justify-between px-5 pt-5 pb-4 border-b border-[#262626]">
-                <h2 className="text-base font-semibold text-[#f5f5f5]">{title}</h2>
+              <div className="flex items-center justify-between px-5 pt-5 pb-4 border-b border-[var(--lt-divider)]">
+                <h2 className="text-base font-semibold text-[var(--lt-text-primary)]">{title}</h2>
                 <button
                   onClick={onClose}
-                  className="p-1.5 rounded-[6px] text-[#6b7280] hover:text-[#f5f5f5] hover:bg-[#262626] transition-colors"
+                  className="p-1.5 rounded-[6px] text-[var(--lt-text-subtle)] hover:text-[var(--lt-text-primary)] hover:bg-[var(--lt-divider)] transition-colors"
                 >
                   <X size={16} />
                 </button>

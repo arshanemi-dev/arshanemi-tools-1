@@ -9,7 +9,7 @@ import { cn } from '@/lib/utils'
 const ROLES = ['admin', 'user']
 
 const ROLE_STYLES = {
-  admin:  { badge: 'text-[#818cf8] bg-[#1e1b4b] border-[#4f46e5]/30', avatar: 'bg-[#4f46e5] text-white' },
+  admin:  { badge: 'text-[var(--lt-accent-light)] bg-[var(--lt-accent-muted)] border-[var(--lt-accent)]/30', avatar: 'bg-[var(--lt-accent)] text-white' },
   user: { badge: 'text-[#34d399] bg-[#064e3b] border-[#10b981]/30', avatar: 'bg-[#059669] text-white' },
 }
 
@@ -24,23 +24,23 @@ function UserForm({ initial = BLANK, companies = [], onSave, onCancel, title }) 
   function textField(key, label, type = 'text', placeholder = '') {
     return (
       <div className="flex flex-col gap-1.5">
-        <label className="text-[10px] font-semibold text-[#6b7280] uppercase tracking-wider">{label}</label>
+        <label className="text-[10px] font-semibold text-[var(--lt-text-subtle)] uppercase tracking-wider">{label}</label>
         <input
           type={type}
           value={f[key]}
           onChange={e => setF(p => ({ ...p, [key]: e.target.value }))}
           placeholder={placeholder}
-          className="w-full px-3 py-2.5 bg-[#0a0a0a] border border-[#2a2a2a] rounded-[8px] text-sm text-[#f5f5f5] placeholder-[#4a4a4a] focus:outline-none focus:border-[#4f46e5] focus:bg-[#0d0d14] transition-all"
+          className="w-full px-3 py-2.5 bg-[var(--lt-bg-base)] border border-[var(--lt-divider-light)] rounded-[8px] text-sm text-[var(--lt-text-primary)] placeholder-[var(--lt-text-subtle)] focus:outline-none focus:border-[var(--lt-accent)] focus:bg-[#0d0d14] transition-all"
         />
       </div>
     )
   }
 
   return (
-    <div className="p-4 bg-[#0f0f1a] border border-[#4f46e5]/30 rounded-[12px] flex flex-col gap-4">
+    <div className="p-4 bg-[var(--lt-accent-muted)] border border-[var(--lt-accent)]/30 rounded-[12px] flex flex-col gap-4">
       <div className="flex items-center justify-between">
-        <p className="text-xs font-bold text-[#818cf8] uppercase tracking-wider">{title}</p>
-        <button onClick={onCancel} className="p-1 text-[#6b7280] hover:text-[#f5f5f5] transition-colors">
+        <p className="text-xs font-bold text-[var(--lt-accent-light)] uppercase tracking-wider">{title}</p>
+        <button onClick={onCancel} className="p-1 text-[var(--lt-text-subtle)] hover:text-[var(--lt-text-primary)] transition-colors">
           <X size={14} />
         </button>
       </div>
@@ -52,7 +52,7 @@ function UserForm({ initial = BLANK, companies = [], onSave, onCancel, title }) 
 
       {/* Role selector */}
       <div className="flex flex-col gap-1.5">
-        <label className="text-[10px] font-semibold text-[#6b7280] uppercase tracking-wider">Role</label>
+        <label className="text-[10px] font-semibold text-[var(--lt-text-subtle)] uppercase tracking-wider">Role</label>
         <div className="flex gap-2">
           {ROLES.map(r => (
             <button
@@ -63,7 +63,7 @@ function UserForm({ initial = BLANK, companies = [], onSave, onCancel, title }) 
                 'flex-1 py-2 text-xs font-semibold rounded-[8px] border capitalize transition-all',
                 f.role === r
                   ? ROLE_STYLES[r].badge
-                  : 'text-[#6b7280] bg-[#0a0a0a] border-[#2a2a2a] hover:border-[#3a3a3a]'
+                  : 'text-[var(--lt-text-subtle)] bg-[var(--lt-bg-base)] border-[var(--lt-divider-light)] hover:border-[var(--lt-text-subtle)]'
               )}
             >
               {r}
@@ -74,16 +74,16 @@ function UserForm({ initial = BLANK, companies = [], onSave, onCancel, title }) 
 
       {/* Company selector */}
       <div className="flex flex-col gap-1.5">
-        <label className="text-[10px] font-semibold text-[#6b7280] uppercase tracking-wider">Company</label>
+        <label className="text-[10px] font-semibold text-[var(--lt-text-subtle)] uppercase tracking-wider">Company</label>
         {companies.length === 0 ? (
-          <p className="text-[11px] text-[#4a4a4a] italic px-1">
+          <p className="text-[11px] text-[var(--lt-text-subtle)] italic px-1">
             No companies yet — create one in the Company tab first.
           </p>
         ) : (
           <select
             value={f.companyId ?? ''}
             onChange={e => setF(p => ({ ...p, companyId: e.target.value || null }))}
-            className="w-full px-3 py-2.5 bg-[#0a0a0a] border border-[#2a2a2a] rounded-[8px] text-sm text-[#f5f5f5] focus:outline-none focus:border-[#4f46e5] transition-all appearance-none"
+            className="w-full px-3 py-2.5 bg-[var(--lt-bg-base)] border border-[var(--lt-divider-light)] rounded-[8px] text-sm text-[var(--lt-text-primary)] focus:outline-none focus:border-[var(--lt-accent)] transition-all appearance-none"
           >
             <option value="">— No company —</option>
             {companies.map(c => (
@@ -94,7 +94,7 @@ function UserForm({ initial = BLANK, companies = [], onSave, onCancel, title }) 
           </select>
         )}
         {f.companyId && (
-          <p className="text-[10px] text-[#4a4a4a] font-mono px-1">
+          <p className="text-[10px] text-[var(--lt-text-subtle)] font-mono px-1">
             Dropbox root → /tools/{companies.find(c => c.id === f.companyId)?.folderId}/{f.name.toLowerCase().replace(/[^a-z0-9]+/g, '_').slice(0,24) || 'user'}_…
           </p>
         )}
@@ -104,14 +104,14 @@ function UserForm({ initial = BLANK, companies = [], onSave, onCancel, title }) 
         <button
           disabled={!ok}
           onClick={() => ok && onSave(f)}
-          className="flex-1 flex items-center justify-center gap-2 py-2.5 bg-[#4f46e5] text-white text-sm font-semibold rounded-[8px] hover:bg-[#4338ca] disabled:opacity-30 disabled:cursor-not-allowed transition-all"
+          className="flex-1 flex items-center justify-center gap-2 py-2.5 bg-[var(--lt-accent)] text-white text-sm font-semibold rounded-[8px] hover:bg-[var(--lt-accent-hover)] disabled:opacity-30 disabled:cursor-not-allowed transition-all"
         >
           <Check size={13} />
           {title === 'Edit User' ? 'Save Changes' : 'Create User'}
         </button>
         <button
           onClick={onCancel}
-          className="px-4 py-2.5 text-sm text-[#6b7280] font-medium bg-[#1c1c1c] rounded-[8px] hover:text-[#f5f5f5] transition-colors"
+          className="px-4 py-2.5 text-sm text-[var(--lt-text-subtle)] font-medium bg-[var(--lt-card-hover)] rounded-[8px] hover:text-[var(--lt-text-primary)] transition-colors"
         >
           Cancel
         </button>
@@ -130,8 +130,8 @@ function UserRow({ user, companies, isActive, onActivate, onEdit, onDelete }) {
     <div className={cn(
       'group flex items-center gap-3 p-3 rounded-[10px] border transition-all',
       isActive
-        ? 'bg-[#0f0f1a] border-[#4f46e5]/40'
-        : 'bg-[#161616] border-[#1e1e1e] hover:border-[#2a2a2a]'
+        ? 'bg-[var(--lt-accent-muted)] border-[var(--lt-accent)]/40'
+        : 'bg-[var(--lt-card)] border-[var(--lt-divider)] hover:border-[var(--lt-divider-light)]'
     )}>
       {/* Avatar */}
       <div className={cn('w-9 h-9 rounded-full flex items-center justify-center text-sm font-bold shrink-0', rs.avatar)}>
@@ -141,14 +141,14 @@ function UserRow({ user, companies, isActive, onActivate, onEdit, onDelete }) {
       {/* Details */}
       <div className="flex-1 min-w-0">
         <div className="flex items-center gap-2 flex-wrap">
-          <p className="text-sm font-semibold text-[#f5f5f5] truncate">{user.name}</p>
+          <p className="text-sm font-semibold text-[var(--lt-text-primary)] truncate">{user.name}</p>
           <span className={cn('shrink-0 px-1.5 py-0.5 rounded-full text-[9px] font-bold border uppercase', rs.badge)}>
             {user.role}
           </span>
         </div>
-        <p className="text-xs text-[#6b7280] truncate mt-0.5">{user.email}</p>
+        <p className="text-xs text-[var(--lt-text-subtle)] truncate mt-0.5">{user.email}</p>
         {company && (
-          <span className="inline-flex items-center gap-1 mt-1 text-[9px] text-[#818cf8] bg-[#1e1b4b] border border-[#4f46e5]/20 rounded-full px-1.5 py-0.5 font-mono">
+          <span className="inline-flex items-center gap-1 mt-1 text-[9px] text-[var(--lt-accent-light)] bg-[var(--lt-accent-muted)] border border-[var(--lt-accent)]/20 rounded-full px-1.5 py-0.5 font-mono">
             <Building2 size={9} />
             {company.folderId}
           </span>
@@ -165,7 +165,7 @@ function UserRow({ user, companies, isActive, onActivate, onEdit, onDelete }) {
         ) : (
           <button
             onClick={() => onActivate(user.id)}
-            className="text-[10px] font-bold text-[#818cf8] bg-[#1e1b4b] border border-[#4f46e5]/30 px-2.5 py-1.5 rounded-full hover:bg-[#4f46e5] hover:text-white hover:border-[#4f46e5] transition-all"
+            className="text-[10px] font-bold text-[var(--lt-accent-light)] bg-[var(--lt-accent-muted)] border border-[var(--lt-accent)]/30 px-2.5 py-1.5 rounded-full hover:bg-[var(--lt-accent)] hover:text-white hover:border-[var(--lt-accent)] transition-all"
           >
             Activate
           </button>
@@ -173,14 +173,14 @@ function UserRow({ user, companies, isActive, onActivate, onEdit, onDelete }) {
         <button
           onClick={() => onEdit(user)}
           title="Edit"
-          className="p-1.5 text-[#6b7280] hover:text-[#f5f5f5] hover:bg-[#1c1c1c] rounded-[6px] transition-colors opacity-0 group-hover:opacity-100"
+          className="p-1.5 text-[var(--lt-text-subtle)] hover:text-[var(--lt-text-primary)] hover:bg-[var(--lt-card-hover)] rounded-[6px] transition-colors opacity-0 group-hover:opacity-100"
         >
           <Pencil size={13} />
         </button>
         <button
           onClick={() => onDelete(user.id)}
           title="Delete"
-          className="p-1.5 text-[#6b7280] hover:text-[#ef4444] hover:bg-[#2a0a0a] rounded-[6px] transition-colors opacity-0 group-hover:opacity-100"
+          className="p-1.5 text-[var(--lt-text-subtle)] hover:text-[#ef4444] hover:bg-[#2a0a0a] rounded-[6px] transition-colors opacity-0 group-hover:opacity-100"
         >
           <Trash2 size={13} />
         </button>
@@ -225,14 +225,14 @@ export default function UsersPanel({ users, companies = [], activeUserId, onRefr
 
       {/* Toolbar */}
       <div className="flex items-center justify-between">
-        <p className="text-xs text-[#6b7280]">
+        <p className="text-xs text-[var(--lt-text-subtle)]">
           {users.length} local user{users.length !== 1 ? 's' : ''}
           {activeUserId && ' · 1 active'}
         </p>
         {!creating && !editing && (
           <button
             onClick={() => setCreating(true)}
-            className="flex items-center gap-1.5 px-3 py-1.5 bg-[#4f46e5] text-white text-xs font-semibold rounded-[8px] hover:bg-[#4338ca] transition-colors"
+            className="flex items-center gap-1.5 px-3 py-1.5 bg-[var(--lt-accent)] text-white text-xs font-semibold rounded-[8px] hover:bg-[var(--lt-accent-hover)] transition-colors"
           >
             <Plus size={13} />
             Add User
@@ -253,12 +253,12 @@ export default function UsersPanel({ users, companies = [], activeUserId, onRefr
       {/* Empty state */}
       {users.length === 0 && !creating && (
         <div className="flex flex-col items-center justify-center py-14 gap-3 text-center">
-          <div className="w-12 h-12 rounded-[10px] bg-[#161616] border border-[#262626] flex items-center justify-center">
-            <User size={20} className="text-[#2a2a2a]" />
+          <div className="w-12 h-12 rounded-[10px] bg-[var(--lt-card)] border border-[var(--lt-divider)] flex items-center justify-center">
+            <User size={20} className="text-[var(--lt-divider-light)]" />
           </div>
           <div>
-            <p className="text-sm font-semibold text-[#a3a3a3]">No users yet</p>
-            <p className="text-xs text-[#6b7280] mt-1">Click "Add User" to create your first local user.</p>
+            <p className="text-sm font-semibold text-[var(--lt-text-muted)]">No users yet</p>
+            <p className="text-xs text-[var(--lt-text-subtle)] mt-1">Click "Add User" to create your first local user.</p>
           </div>
         </div>
       )}

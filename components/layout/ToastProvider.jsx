@@ -15,7 +15,7 @@ const ICONS = {
 const STYLES = {
   success: 'bg-[#064e3b] text-[#10b981] border-[#10b981]/30',
   error:   'bg-[#450a0a] text-[#ef4444] border-[#ef4444]/30',
-  info:    'bg-[#1e1b4b] text-[#818cf8] border-[#4f46e5]/30',
+  info:    'bg-[var(--lt-accent-muted)] text-[var(--lt-accent-light)] border-[var(--lt-accent)]/30',
 }
 
 export function ToastProvider({ children }) {

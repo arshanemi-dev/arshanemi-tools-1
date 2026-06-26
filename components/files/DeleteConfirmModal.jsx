@@ -13,10 +13,10 @@ export default function DeleteConfirmModal({ open, onClose, paths = [], onConfir
             <Trash2 size={18} className="text-[#ef4444]" />
           </div>
           <div>
-            <p className="text-sm text-[#f5f5f5] mb-1">
+            <p className="text-sm text-[var(--lt-text-primary)] mb-1">
               Delete {paths.length} item{paths.length > 1 ? 's' : ''}?
             </p>
-            <p className="text-xs text-[#6b7280]">
+            <p className="text-xs text-[var(--lt-text-subtle)]">
               This action cannot be undone. Files will be permanently removed from Dropbox.
             </p>
           </div>

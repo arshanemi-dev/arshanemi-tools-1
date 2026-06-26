@@ -13,17 +13,17 @@ function TokenField({ label, icon: Icon, value, onChange, onSave, onClear, saved
   useEffect(() => setDraft(value), [value])
 
   return (
-    <div className="flex flex-col gap-3 p-4 bg-[#161616] border border-[#262626] rounded-[10px]">
+    <div className="flex flex-col gap-3 p-4 bg-[var(--lt-card)] border border-[var(--lt-divider)] rounded-[10px]">
       <div className="flex items-center gap-2">
-        <div className="w-7 h-7 rounded-[6px] bg-[#1e1b4b] border border-[#4f46e5]/30 flex items-center justify-center shrink-0">
-          <Icon size={13} className="text-[#818cf8]" />
+        <div className="w-7 h-7 rounded-[6px] bg-[var(--lt-accent-muted)] border border-[var(--lt-accent)]/30 flex items-center justify-center shrink-0">
+          <Icon size={13} className="text-[var(--lt-accent-light)]" />
         </div>
-        <span className="text-sm font-medium text-[#f5f5f5]">{label}</span>
+        <span className="text-sm font-medium text-[var(--lt-text-primary)]">{label}</span>
         {value && <CheckCircle size={13} className="text-[#10b981] ml-auto" />}
       </div>
 
       {description && (
-        <p className="text-xs text-[#6b7280]">{description}</p>
+        <p className="text-xs text-[var(--lt-text-subtle)]">{description}</p>
       )}
 
       <div className="flex gap-2">
@@ -33,12 +33,12 @@ function TokenField({ label, icon: Icon, value, onChange, onSave, onClear, saved
             value={draft}
             onChange={e => setDraft(e.target.value)}
             placeholder={value ? '••••••••••••••••' : 'Paste token here…'}
-            className="w-full px-3 pr-9 py-2 bg-[#111111] border border-[#333333] rounded-[8px] text-sm text-[#f5f5f5] placeholder-[#6b7280] focus:outline-none focus:border-[#4f46e5] transition-colors font-mono"
+            className="w-full px-3 pr-9 py-2 bg-[var(--lt-surface)] border border-[var(--lt-divider-light)] rounded-[8px] text-sm text-[var(--lt-text-primary)] placeholder-[var(--lt-text-subtle)] focus:outline-none focus:border-[var(--lt-accent)] transition-colors font-mono"
           />
           <button
             type="button"
             onClick={() => setShow(s => !s)}
-            className="absolute right-2.5 top-1/2 -translate-y-1/2 text-[#6b7280] hover:text-[#f5f5f5] transition-colors"
+            className="absolute right-2.5 top-1/2 -translate-y-1/2 text-[var(--lt-text-subtle)] hover:text-[var(--lt-text-primary)] transition-colors"
           >
             {show ? <EyeOff size={14} /> : <Eye size={14} />}
           </button>
@@ -88,14 +88,14 @@ export default function TokenSetup({ onTokenChange }) {
   return (
     <div className="flex flex-col gap-4">
       <div className="flex items-center justify-between">
-        <h2 className="text-base font-semibold text-[#f5f5f5]">API Tokens</h2>
+        <h2 className="text-base font-semibold text-[var(--lt-text-primary)]">API Tokens</h2>
         {apiBase ? (
           <span className="flex items-center gap-1.5 text-xs text-[#10b981]">
             <CheckCircle size={11} />
             Admin API connected
           </span>
         ) : (
-          <span className="flex items-center gap-1.5 text-xs text-[#6b7280]">
+          <span className="flex items-center gap-1.5 text-xs text-[var(--lt-text-subtle)]">
             <XCircle size={11} />
             No admin API configured
           </span>

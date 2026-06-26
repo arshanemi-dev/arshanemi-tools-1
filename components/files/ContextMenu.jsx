@@ -7,7 +7,7 @@ import {
 import { cn } from '@/lib/utils'
 import { motion } from 'framer-motion'
 
-const Divider = () => <div className="my-0.5 mx-2 h-px bg-[#262626]" />
+const Divider = () => <div className="my-0.5 mx-2 h-px bg-[var(--lt-divider)]" />
 
 function MenuItem({ icon: Icon, label, onClick, variant = 'default', disabled }) {
   return (
@@ -19,7 +19,7 @@ function MenuItem({ icon: Icon, label, onClick, variant = 'default', disabled })
         'disabled:opacity-40 disabled:cursor-not-allowed',
         variant === 'danger'
           ? 'text-[#ef4444] hover:bg-[#450a0a]'
-          : 'text-[#a3a3a3] hover:text-[#f5f5f5] hover:bg-[#1c1c1c]'
+          : 'text-[var(--lt-text-muted)] hover:text-[var(--lt-text-primary)] hover:bg-[var(--lt-card-hover)]'
       )}
     >
       {Icon && <Icon size={14} className="shrink-0" />}
@@ -68,7 +68,7 @@ export default function ContextMenu({
       animate={{ opacity: 1, scale: 1 }}
       transition={{ duration: 0.12 }}
       style={{ position: 'fixed', left: x, top: y, zIndex: 1000 }}
-      className="w-44 bg-[#161616] border border-[#333333] rounded-[10px] shadow-2xl shadow-black/60 p-1 animate-fadeIn"
+      className="w-44 bg-[var(--lt-card)] border border-[var(--lt-divider-light)] rounded-[10px] shadow-2xl shadow-black/60 p-1 animate-fadeIn"
       onClick={e => e.stopPropagation()}
     >
       {isFolder && (

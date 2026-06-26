@@ -48,7 +48,7 @@ export default function RenameModal({ open, onClose, item, onRenamed, toast }) {
               e.target.select()
             }
           }}
-          className="w-full px-3 py-2.5 bg-[#111111] border border-[#333333] rounded-[8px] text-sm text-[#f5f5f5] focus:outline-none focus:border-[#4f46e5] transition-colors"
+          className="w-full px-3 py-2.5 bg-[var(--lt-surface)] border border-[var(--lt-divider-light)] rounded-[8px] text-sm text-[var(--lt-text-primary)] focus:outline-none focus:border-[var(--lt-accent)] transition-colors"
         />
         <div className="flex justify-end gap-2">
           <Button type="button" variant="ghost" size="sm" onClick={onClose}>Cancel</Button>

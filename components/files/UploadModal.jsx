@@ -37,7 +37,7 @@ function validateFile(file) {
 function FileBadge({ category }) {
   if (category === 'image') {
     return (
-      <span className="flex items-center gap-1 text-[10px] px-1.5 py-0.5 rounded bg-[#1e1b4b] text-[#818cf8]">
+      <span className="flex items-center gap-1 text-[10px] px-1.5 py-0.5 rounded bg-[var(--lt-accent-muted)] text-[var(--lt-accent-light)]">
         <Image size={9} /> IMG
       </span>
     )
@@ -59,24 +59,24 @@ function FileRow({ file, variant, error }) {
 
   return (
     <div className={cn(
-      'flex items-center gap-3 py-2 px-3 border-b border-[#1a1a1a] last:border-0',
+      'flex items-center gap-3 py-2 px-3 border-b border-[var(--lt-divider)] last:border-0',
       variant === 'duplicate' && 'bg-[#2d1a00]/20',
       variant === 'rejected'  && 'bg-[#450a0a]/20',
     )}>
-      <div className="w-8 h-8 shrink-0 rounded-[5px] bg-[#111111] overflow-hidden flex items-center justify-center">
+      <div className="w-8 h-8 shrink-0 rounded-[5px] bg-[var(--lt-surface)] overflow-hidden flex items-center justify-center">
         {preview
           ? <img src={preview} alt="" className="w-8 h-8 object-cover" />
           : category === 'video'
           ? <Video size={15} className="text-[#f59e0b]" />
-          : <Upload size={13} className="text-[#6b7280]" />
+          : <Upload size={13} className="text-[var(--lt-text-subtle)]" />
         }
       </div>
       <div className="flex-1 min-w-0">
         <div className="flex items-center gap-1.5 mb-0.5">
-          <p className="text-xs text-[#f5f5f5] truncate">{file.name}</p>
+          <p className="text-xs text-[var(--lt-text-primary)] truncate">{file.name}</p>
           <FileBadge category={category} />
         </div>
-        <p className="text-[10px] text-[#6b7280]">{formatBytes(file.size)}</p>
+        <p className="text-[10px] text-[var(--lt-text-subtle)]">{formatBytes(file.size)}</p>
         {error && <p className="text-[10px] text-[#ef4444] mt-0.5">{error}</p>}
       </div>
       {variant === 'duplicate' && <AlertTriangle size={13} className="text-[#f59e0b] shrink-0" />}
@@ -94,29 +94,29 @@ function UploadItem({ entry }) {
     ? 'text-[#10b981]'
     : entry.status === 'error'
     ? 'text-[#ef4444]'
-    : 'text-[#818cf8]'
+    : 'text-[var(--lt-accent-light)]'
 
   return (
-    <div className="flex items-center gap-3 py-2.5 px-3 border-b border-[#262626] last:border-0">
-      <div className="w-10 h-10 shrink-0 rounded-[6px] bg-[#111111] overflow-hidden flex items-center justify-center">
+    <div className="flex items-center gap-3 py-2.5 px-3 border-b border-[var(--lt-divider)] last:border-0">
+      <div className="w-10 h-10 shrink-0 rounded-[6px] bg-[var(--lt-surface)] overflow-hidden flex items-center justify-center">
         {preview
           ? <img src={preview} alt="" className="w-10 h-10 object-cover" />
           : category === 'video'
           ? <Video size={18} className="text-[#f59e0b]" />
-          : <Upload size={16} className="text-[#6b7280]" />
+          : <Upload size={16} className="text-[var(--lt-text-subtle)]" />
         }
       </div>
       <div className="flex-1 min-w-0">
         <div className="flex items-center gap-2 mb-0.5">
-          <p className="text-sm text-[#f5f5f5] truncate">{entry.file.name}</p>
+          <p className="text-sm text-[var(--lt-text-primary)] truncate">{entry.file.name}</p>
           <FileBadge category={category} />
         </div>
-        <p className="text-xs text-[#6b7280]">{formatBytes(entry.file.size)}</p>
+        <p className="text-xs text-[var(--lt-text-subtle)]">{formatBytes(entry.file.size)}</p>
 
         {(entry.status === 'uploading' || entry.status === 'pending') && (
-          <div className="mt-1.5 h-1.5 bg-[#1c1c1c] rounded-full overflow-hidden">
+          <div className="mt-1.5 h-1.5 bg-[var(--lt-card-hover)] rounded-full overflow-hidden">
             <div
-              className="h-full bg-[#4f46e5] transition-all duration-300 rounded-full"
+              className="h-full bg-[var(--lt-accent)] transition-all duration-300 rounded-full"
               style={{ width: `${entry.progress}%` }}
             />
           </div>
@@ -218,10 +218,10 @@ export default function UploadModal({ open, onClose, onUpload, uploads, uploadin
 
         {/* Current upload destination */}
         {folderPath !== undefined && folderPath !== null && (
-          <div className="flex items-center gap-2 px-3 py-2 rounded-[8px] bg-[#0d0d0d] border border-[#262626]">
-            <Folder size={13} className="text-[#4f46e5] shrink-0" fill="rgba(79,70,229,0.15)" />
-            <span className="text-[10px] text-[#6b7280] shrink-0">Uploading to:</span>
-            <span className="text-[11px] text-[#a3a3a3] font-mono truncate">
+          <div className="flex items-center gap-2 px-3 py-2 rounded-[8px] bg-[var(--lt-surface)] border border-[var(--lt-divider)]">
+            <Folder size={13} className="text-[var(--lt-accent)] shrink-0" fill="rgba(79,70,229,0.15)" />
+            <span className="text-[10px] text-[var(--lt-text-subtle)] shrink-0">Uploading to:</span>
+            <span className="text-[11px] text-[var(--lt-text-muted)] font-mono truncate">
               {folderPath === '' ? '/ (root)' : folderPath.split('/').filter(Boolean).pop()}
             </span>
           </div>
@@ -229,18 +229,18 @@ export default function UploadModal({ open, onClose, onUpload, uploads, uploadin
 
         {/* Limit info cards */}
         <div className="flex gap-3">
-          <div className="flex-1 flex items-center gap-2 px-3 py-2 rounded-[8px] bg-[#111111] border border-[#262626]">
-            <Image size={14} className="text-[#818cf8] shrink-0" />
+          <div className="flex-1 flex items-center gap-2 px-3 py-2 rounded-[8px] bg-[var(--lt-surface)] border border-[var(--lt-divider)]">
+            <Image size={14} className="text-[var(--lt-accent-light)] shrink-0" />
             <div>
-              <p className="text-xs font-medium text-[#f5f5f5]">Images</p>
-              <p className="text-[10px] text-[#6b7280]">Max 30 MB · jpg png gif webp svg…</p>
+              <p className="text-xs font-medium text-[var(--lt-text-primary)]">Images</p>
+              <p className="text-[10px] text-[var(--lt-text-subtle)]">Max 30 MB · jpg png gif webp svg…</p>
             </div>
           </div>
-          <div className="flex-1 flex items-center gap-2 px-3 py-2 rounded-[8px] bg-[#111111] border border-[#262626]">
+          <div className="flex-1 flex items-center gap-2 px-3 py-2 rounded-[8px] bg-[var(--lt-surface)] border border-[var(--lt-divider)]">
             <Video size={14} className="text-[#f59e0b] shrink-0" />
             <div>
-              <p className="text-xs font-medium text-[#f5f5f5]">Videos</p>
-              <p className="text-[10px] text-[#6b7280]">Max 100 MB · mp4 mov mkv webm…</p>
+              <p className="text-xs font-medium text-[var(--lt-text-primary)]">Videos</p>
+              <p className="text-[10px] text-[var(--lt-text-subtle)]">Max 100 MB · mp4 mov mkv webm…</p>
             </div>
           </div>
         </div>
@@ -255,16 +255,16 @@ export default function UploadModal({ open, onClose, onUpload, uploads, uploadin
             className={cn(
               'flex flex-col items-center justify-center gap-3 py-10 rounded-[10px] border-2 border-dashed cursor-pointer transition-all',
               dragOver
-                ? 'border-[#4f46e5] bg-[#1e1b4b]/40'
-                : 'border-[#333333] hover:border-[#4f46e5]/50 hover:bg-[#1c1c1c]'
+                ? 'border-[var(--lt-accent)] bg-[var(--lt-accent-muted)]/40'
+                : 'border-[var(--lt-divider-light)] hover:border-[var(--lt-accent)]/50 hover:bg-[var(--lt-card-hover)]'
             )}
           >
-            <div className="w-12 h-12 rounded-full bg-[#1c1c1c] border border-[#333333] flex items-center justify-center">
-              <Upload size={22} className="text-[#4f46e5]" />
+            <div className="w-12 h-12 rounded-full bg-[var(--lt-card-hover)] border border-[var(--lt-divider-light)] flex items-center justify-center">
+              <Upload size={22} className="text-[var(--lt-accent)]" />
             </div>
             <div className="text-center">
-              <p className="text-sm text-[#f5f5f5] font-medium">Drag images & videos here or click to browse</p>
-              <p className="text-xs text-[#6b7280] mt-0.5">Images ≤ 30 MB · Videos ≤ 100 MB</p>
+              <p className="text-sm text-[var(--lt-text-primary)] font-medium">Drag images & videos here or click to browse</p>
+              <p className="text-xs text-[var(--lt-text-subtle)] mt-0.5">Images ≤ 30 MB · Videos ≤ 100 MB</p>
             </div>
           </div>
         )}
@@ -283,8 +283,8 @@ export default function UploadModal({ open, onClose, onUpload, uploads, uploadin
           <>
             {/* Ready to upload */}
             {readyFiles.length > 0 && (
-              <div className="rounded-[8px] border border-[#262626] overflow-hidden">
-                <div className="px-3 py-2 border-b border-[#262626] bg-[#111111]">
+              <div className="rounded-[8px] border border-[var(--lt-divider)] overflow-hidden">
+                <div className="px-3 py-2 border-b border-[var(--lt-divider)] bg-[var(--lt-surface)]">
                   <p className="text-xs font-medium text-[#10b981]">
                     {readyFiles.length} file{readyFiles.length > 1 ? 's' : ''} ready to upload
                   </p>
@@ -331,9 +331,9 @@ export default function UploadModal({ open, onClose, onUpload, uploads, uploadin
 
             {/* Expiry picker — only when there are files to upload */}
             {readyFiles.length > 0 && (
-              <div className="px-3 py-3 rounded-[8px] bg-[#111111] border border-[#262626] space-y-2">
-                <p className="text-xs font-medium text-[#a3a3a3]">
-                  Expiry Date <span className="text-[#6b7280] font-normal">(optional)</span>
+              <div className="px-3 py-3 rounded-[8px] bg-[var(--lt-surface)] border border-[var(--lt-divider)] space-y-2">
+                <p className="text-xs font-medium text-[var(--lt-text-muted)]">
+                  Expiry Date <span className="text-[var(--lt-text-subtle)] font-normal">(optional)</span>
                 </p>
                 <ExpiryPicker onChange={setExpiryIso} />
               </div>
@@ -343,7 +343,7 @@ export default function UploadModal({ open, onClose, onUpload, uploads, uploadin
 
         {/* ── Upload progress list ─────────────────────────────────── */}
         {uploads.length > 0 && (
-          <div className="max-h-64 overflow-y-auto rounded-[8px] border border-[#262626] bg-[#111111]">
+          <div className="max-h-64 overflow-y-auto rounded-[8px] border border-[var(--lt-divider)] bg-[var(--lt-surface)]">
             {uploads.map(entry => (
               <UploadItem key={entry.id} entry={entry} />
             ))}
@@ -357,14 +357,14 @@ export default function UploadModal({ open, onClose, onUpload, uploads, uploadin
             errCount === 0
               ? 'bg-[#064e3b]/30 border-[#10b981]/30'
               : doneCount > 0
-              ? 'bg-[#1e1b4b]/30 border-[#4f46e5]/30'
+              ? 'bg-[var(--lt-accent-muted)]/30 border-[var(--lt-accent)]/30'
               : 'bg-[#450a0a]/30 border-[#ef4444]/30'
           )}>
             {errCount === 0
               ? <CheckCircle size={14} className="text-[#10b981] shrink-0" />
-              : <AlertCircle size={14} className="text-[#818cf8] shrink-0" />
+              : <AlertCircle size={14} className="text-[var(--lt-accent-light)] shrink-0" />
             }
-            <p className="text-xs text-[#f5f5f5]">
+            <p className="text-xs text-[var(--lt-text-primary)]">
               {doneCount > 0 && `${doneCount} file${doneCount > 1 ? 's' : ''} uploaded successfully`}
               {doneCount > 0 && errCount > 0 && ' · '}
               {errCount > 0 && `${errCount} failed`}

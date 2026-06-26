@@ -57,9 +57,9 @@ export default function LoginForm({ onSuccess }) {
         <AlertCircle size={16} className="text-[#f59e0b] mt-0.5 shrink-0" />
         <div>
           <p className="text-sm font-medium text-[#f59e0b]">Admin API not configured</p>
-          <p className="text-xs text-[#a3a3a3] mt-1">
-            Set <code className="text-[#f5f5f5] bg-[#1c1c1c] px-1 py-0.5 rounded">NEXT_PUBLIC_ADMIN_API_URL</code> in{' '}
-            <code className="text-[#f5f5f5] bg-[#1c1c1c] px-1 py-0.5 rounded">.env.local</code> to enable login.
+          <p className="text-xs text-[var(--lt-text-muted)] mt-1">
+            Set <code className="text-[var(--lt-text-primary)] bg-[var(--lt-card-hover)] px-1 py-0.5 rounded">NEXT_PUBLIC_ADMIN_API_URL</code> in{' '}
+            <code className="text-[var(--lt-text-primary)] bg-[var(--lt-card-hover)] px-1 py-0.5 rounded">.env.local</code> to enable login.
             Dummy theme, user and plan data will be used until then.
           </p>
         </div>
@@ -70,7 +70,7 @@ export default function LoginForm({ onSuccess }) {
   return (
     <form onSubmit={handleSubmit} className="flex flex-col gap-4">
       <div className="flex flex-col gap-1.5">
-        <label className="text-xs text-[#6b7280] font-medium">Email or Mobile</label>
+        <label className="text-xs text-[var(--lt-text-subtle)] font-medium">Email or Mobile</label>
         <input
           type="text"
           value={identifier}
@@ -78,12 +78,12 @@ export default function LoginForm({ onSuccess }) {
           placeholder="admin@example.com"
           autoComplete="username"
           required
-          className="w-full px-3 py-2.5 bg-[#111111] border border-[#333333] rounded-[8px] text-sm text-[#f5f5f5] placeholder-[#6b7280] focus:outline-none focus:border-[#4f46e5] transition-colors"
+          className="w-full px-3 py-2.5 bg-[var(--lt-surface)] border border-[var(--lt-divider-light)] rounded-[8px] text-sm text-[var(--lt-text-primary)] placeholder-[var(--lt-text-subtle)] focus:outline-none focus:border-[var(--lt-accent)] transition-colors"
         />
       </div>
 
       <div className="flex flex-col gap-1.5">
-        <label className="text-xs text-[#6b7280] font-medium">Password</label>
+        <label className="text-xs text-[var(--lt-text-subtle)] font-medium">Password</label>
         <div className="relative">
           <input
             type={showPass ? 'text' : 'password'}
@@ -92,12 +92,12 @@ export default function LoginForm({ onSuccess }) {
             placeholder="••••••••"
             autoComplete="current-password"
             required
-            className="w-full px-3 pr-9 py-2.5 bg-[#111111] border border-[#333333] rounded-[8px] text-sm text-[#f5f5f5] placeholder-[#6b7280] focus:outline-none focus:border-[#4f46e5] transition-colors"
+            className="w-full px-3 pr-9 py-2.5 bg-[var(--lt-surface)] border border-[var(--lt-divider-light)] rounded-[8px] text-sm text-[var(--lt-text-primary)] placeholder-[var(--lt-text-subtle)] focus:outline-none focus:border-[var(--lt-accent)] transition-colors"
           />
           <button
             type="button"
             onClick={() => setShowPass(s => !s)}
-            className="absolute right-2.5 top-1/2 -translate-y-1/2 text-[#6b7280] hover:text-[#f5f5f5] transition-colors"
+            className="absolute right-2.5 top-1/2 -translate-y-1/2 text-[var(--lt-text-subtle)] hover:text-[var(--lt-text-primary)] transition-colors"
           >
             {showPass ? <EyeOff size={14} /> : <Eye size={14} />}
           </button>
@@ -115,9 +115,9 @@ export default function LoginForm({ onSuccess }) {
         {loading ? 'Signing in…' : 'Sign in to Admin Panel'}
       </Button>
 
-      <p className="text-xs text-[#6b7280] text-center">
+      <p className="text-xs text-[var(--lt-text-subtle)] text-center">
         Connecting to{' '}
-        <span className="text-[#818cf8]">{API_BASE}</span>
+        <span className="text-[var(--lt-accent-light)]">{API_BASE}</span>
       </p>
     </form>
   )

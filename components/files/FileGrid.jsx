@@ -31,13 +31,13 @@ export default function FileGrid({
   if (allItems.length === 0) {
     return (
       <div className="flex flex-col items-center justify-center py-24 text-center">
-        <div className="w-16 h-16 rounded-full bg-[#161616] border border-[#262626] flex items-center justify-center mb-4">
-          <svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" fill="none" stroke="#6b7280" strokeWidth="1.5" viewBox="0 0 24 24">
+        <div className="w-16 h-16 rounded-full bg-[var(--lt-card)] border border-[var(--lt-divider)] flex items-center justify-center mb-4">
+          <svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" fill="none" stroke='var(--lt-text-subtle)' strokeWidth="1.5" viewBox="0 0 24 24">
             <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/>
           </svg>
         </div>
-        <p className="text-[#a3a3a3] text-sm">This folder is empty</p>
-        <p className="text-[#6b7280] text-xs mt-1">Upload files or create a folder to get started</p>
+        <p className="text-[var(--lt-text-muted)] text-sm">This folder is empty</p>
+        <p className="text-[var(--lt-text-subtle)] text-xs mt-1">Upload files or create a folder to get started</p>
       </div>
     )
   }

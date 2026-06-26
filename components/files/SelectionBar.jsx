@@ -34,17 +34,17 @@ export default function SelectionBar({
         animate={{ opacity: 1, y: 0 }}
         exit={{ opacity: 0, y: 12 }}
         transition={{ duration: 0.18, ease: [0.16, 1, 0.3, 1] }}
-        className="hidden flex items-center gap-2 flex-wrap px-4 py-2.5 bg-[#1e1b4b] border border-[#4f46e5]/40 rounded-[10px] shadow-lg shadow-[#4f46e5]/10"
+        className="hidden flex items-center gap-2 flex-wrap px-4 py-2.5 bg-[var(--lt-accent-muted)] border border-[var(--lt-accent)]/40 rounded-[10px] shadow-lg shadow-[var(--lt-accent)]/10"
       >
         {/* Badge */}
         <button
           onClick={onClearSelection}
-          className="flex items-center gap-1.5 px-2.5 h-7 rounded-[6px] bg-[#4f46e5]/20 text-[#818cf8] text-sm font-semibold hover:bg-[#4f46e5]/30 transition-colors cursor-pointer"
+          className="flex items-center gap-1.5 px-2.5 h-7 rounded-[6px] bg-[var(--lt-accent)]/20 text-[var(--lt-accent-light)] text-sm font-semibold hover:bg-[var(--lt-accent)]/30 transition-colors cursor-pointer"
         >
           {count} selected ✕
         </button>
 
-        <div className="w-px h-5 bg-[#4f46e5]/30" />
+        <div className="w-px h-5 bg-[var(--lt-accent)]/30" />
 
         {/* <Button size="sm" variant="ghost" icon={<Copy size={13} />} onClick={() => onCopy(selectedArr)}>
           Copy
@@ -56,7 +56,7 @@ export default function SelectionBar({
           Paste
         </Button> */}
 
-        <div className="w-px h-5 bg-[#4f46e5]/30" />
+        <div className="w-px h-5 bg-[var(--lt-accent)]/30" />
 
         <Button size="sm" variant="ghost" icon={<Pencil size={13} />} onClick={onRename} disabled={!canRename}>
           Rename
@@ -65,7 +65,7 @@ export default function SelectionBar({
           Delete
         </Button>
 
-        <div className="w-px h-5 bg-[#4f46e5]/30 ml-auto" />
+        <div className="w-px h-5 bg-[var(--lt-accent)]/30 ml-auto" />
 
         <Button
           size="sm"

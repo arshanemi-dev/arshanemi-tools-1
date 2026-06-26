@@ -36,7 +36,7 @@ function GroupNameEditor({ index, name, onChange }) {
           onChange={e => setDraft(e.target.value)}
           onBlur={confirm}
           onKeyDown={e => { if (e.key === 'Enter') confirm(); if (e.key === 'Escape') setEditing(false) }}
-          className="w-24 px-1.5 py-0.5 text-xs bg-[#0a0a0a] border border-[#4f46e5] rounded text-[#f5f5f5] focus:outline-none"
+          className="w-24 px-1.5 py-0.5 text-xs bg-[var(--lt-bg-base)] border border-[var(--lt-accent)] rounded text-[var(--lt-text-primary)] focus:outline-none"
         />
       </div>
     )
@@ -47,8 +47,8 @@ function GroupNameEditor({ index, name, onChange }) {
       onClick={() => { setDraft(name); setEditing(true) }}
       className="flex items-center gap-1 group/name"
     >
-      <span className="text-xs font-semibold text-[#818cf8]">{name}</span>
-      <Pencil size={10} className="text-[#6b7280] opacity-0 group-hover/name:opacity-100 transition-opacity" />
+      <span className="text-xs font-semibold text-[var(--lt-accent-light)]">{name}</span>
+      <Pencil size={10} className="text-[var(--lt-text-subtle)] opacity-0 group-hover/name:opacity-100 transition-opacity" />
     </button>
   )
 }
@@ -127,14 +127,14 @@ export default function CopyUrlsModal({ open, onClose, items = [], selectionOrde
       <div className="flex flex-col gap-5">
 
         {/* Selection count (Task 10) */}
-        <div className="flex items-center gap-2 px-3 py-2 bg-[#111111] rounded-[8px] border border-[#262626]">
-          <span className="text-[11px] text-[#6b7280]">Selected:</span>
-          <span className="text-sm font-bold text-[#818cf8]">{urls.length}</span>
-          <span className="text-[11px] text-[#6b7280]">file{urls.length !== 1 ? 's' : ''}</span>
+        <div className="flex items-center gap-2 px-3 py-2 bg-[var(--lt-surface)] rounded-[8px] border border-[var(--lt-divider)]">
+          <span className="text-[11px] text-[var(--lt-text-subtle)]">Selected:</span>
+          <span className="text-sm font-bold text-[var(--lt-accent-light)]">{urls.length}</span>
+          <span className="text-[11px] text-[var(--lt-text-subtle)]">file{urls.length !== 1 ? 's' : ''}</span>
           {result && (
             <>
-              <span className="text-[#333333]">·</span>
-              <span className="text-[11px] text-[#6b7280]">{result.groupCount} group{result.groupCount !== 1 ? 's' : ''}</span>
+              <span className="text-[var(--lt-divider-light)]">·</span>
+              <span className="text-[11px] text-[var(--lt-text-subtle)]">{result.groupCount} group{result.groupCount !== 1 ? 's' : ''}</span>
             </>
           )}
         </div>
@@ -143,7 +143,7 @@ export default function CopyUrlsModal({ open, onClose, items = [], selectionOrde
         <div className="flex items-center gap-4 flex-wrap">
           {/* Group size */}
           <div className="flex items-center gap-2">
-            <span className="text-xs text-[#6b7280] shrink-0">Group by:</span>
+            <span className="text-xs text-[var(--lt-text-subtle)] shrink-0">Group by:</span>
             <div className="flex gap-1">
               {GROUP_SIZES.map(n => (
                 <button
@@ -152,8 +152,8 @@ export default function CopyUrlsModal({ open, onClose, items = [], selectionOrde
                   className={cn(
                     'w-8 h-7 rounded-[6px] text-sm font-medium transition-all',
                     groupSize === n
-                      ? 'bg-[#4f46e5] text-white'
-                      : 'bg-[#1c1c1c] text-[#a3a3a3] hover:text-[#f5f5f5] border border-[#333333]'
+                      ? 'bg-[var(--lt-accent)] text-white'
+                      : 'bg-[var(--lt-card-hover)] text-[var(--lt-text-muted)] hover:text-[var(--lt-text-primary)] border border-[var(--lt-divider-light)]'
                   )}
                 >
                   {n}
@@ -164,7 +164,7 @@ export default function CopyUrlsModal({ open, onClose, items = [], selectionOrde
 
           {/* Sort */}
           <div className="flex items-center gap-2">
-            <span className="text-xs text-[#6b7280] shrink-0">Sort by:</span>
+            <span className="text-xs text-[var(--lt-text-subtle)] shrink-0">Sort by:</span>
             <div className="flex gap-1 flex-wrap">
               {SORT_OPTIONS.map(opt => (
                 <button
@@ -173,8 +173,8 @@ export default function CopyUrlsModal({ open, onClose, items = [], selectionOrde
                   className={cn(
                     'px-2.5 h-7 rounded-[6px] text-xs font-medium transition-all whitespace-nowrap',
                     sortBy === opt.value
-                      ? 'bg-[#4f46e5] text-white'
-                      : 'bg-[#1c1c1c] text-[#a3a3a3] hover:text-[#f5f5f5] border border-[#333333]'
+                      ? 'bg-[var(--lt-accent)] text-white'
+                      : 'bg-[var(--lt-card-hover)] text-[var(--lt-text-muted)] hover:text-[var(--lt-text-primary)] border border-[var(--lt-divider-light)]'
                   )}
                 >
                   {opt.label}
@@ -187,7 +187,7 @@ export default function CopyUrlsModal({ open, onClose, items = [], selectionOrde
         {/* Column name legend */}
         {groups.length > 0 && (
           <div className="flex items-center gap-2 flex-wrap">
-            <span className="text-xs text-[#6b7280]">Column names (click to rename):</span>
+            <span className="text-xs text-[var(--lt-text-subtle)]">Column names (click to rename):</span>
             {Array.from({ length: groupSize }).map((_, i) => (
               <GroupNameEditor key={i} index={i} name={getGroupName(i)} onChange={setGroupName} />
             ))}
@@ -195,29 +195,29 @@ export default function CopyUrlsModal({ open, onClose, items = [], selectionOrde
         )}
 
         {/* Preview table */}
-        <div className="overflow-x-auto rounded-[8px] border border-[#262626]">
+        <div className="overflow-x-auto rounded-[8px] border border-[var(--lt-divider)]">
           {loading ? (
             <div className="flex items-center justify-center py-12">
               <Spinner size="md" />
             </div>
           ) : groups.length === 0 ? (
-            <div className="py-12 text-center text-sm text-[#6b7280]">No items</div>
+            <div className="py-12 text-center text-sm text-[var(--lt-text-subtle)]">No items</div>
           ) : (
             <table className="w-full text-xs">
               <thead>
-                <tr className="bg-[#111111] border-b border-[#262626]">
-                  <th className="px-3 py-2 text-left text-[#6b7280] w-8">#</th>
+                <tr className="bg-[var(--lt-surface)] border-b border-[var(--lt-divider)]">
+                  <th className="px-3 py-2 text-left text-[var(--lt-text-subtle)] w-8">#</th>
                   {Array.from({ length: groupSize }).map((_, i) => (
                     <th key={i} className="px-3 py-2 text-left">
-                      <span className="text-[#818cf8] font-semibold">{getGroupName(i)}</span>
+                      <span className="text-[var(--lt-accent-light)] font-semibold">{getGroupName(i)}</span>
                     </th>
                   ))}
                 </tr>
               </thead>
               <tbody>
                 {groups.map((row, ri) => (
-                  <tr key={ri} className="border-b border-[#262626] last:border-0 hover:bg-[#1c1c1c]/50 transition-colors">
-                    <td className="px-3 py-2 text-[#6b7280] font-mono font-semibold">{ri + 1}</td>
+                  <tr key={ri} className="border-b border-[var(--lt-divider)] last:border-0 hover:bg-[var(--lt-card-hover)]/50 transition-colors">
+                    <td className="px-3 py-2 text-[var(--lt-text-subtle)] font-mono font-semibold">{ri + 1}</td>
                     {Array.from({ length: groupSize }).map((_, ci) => {
                       const url = row[ci]
                       return (
@@ -229,16 +229,16 @@ export default function CopyUrlsModal({ open, onClose, items = [], selectionOrde
                                   (() => { try { return new URL(url).pathname } catch { return url } })()
                                 )}`}
                                 alt=""
-                                className="w-8 h-8 object-cover rounded-[4px] bg-[#1c1c1c] shrink-0"
+                                className="w-8 h-8 object-cover rounded-[4px] bg-[var(--lt-card-hover)] shrink-0"
                                 loading="lazy"
                                 onError={e => { e.currentTarget.style.display = 'none' }}
                               />
-                              <span className="text-[#a3a3a3] truncate max-w-[120px]">
+                              <span className="text-[var(--lt-text-muted)] truncate max-w-[120px]">
                                 {url.split('/').pop()?.split('?')[0]}
                               </span>
                             </div>
                           ) : (
-                            <span className="text-[#333333]">—</span>
+                            <span className="text-[var(--lt-divider-light)]">—</span>
                           )}
                         </td>
                       )
@@ -261,7 +261,7 @@ export default function CopyUrlsModal({ open, onClose, items = [], selectionOrde
               'flex items-center gap-2 px-4 h-9 rounded-[8px] text-xs font-semibold border transition-all',
               copying === 'excel'
                 ? 'bg-[#064e3b] border-[#10b981]/40 text-[#10b981]'
-                : 'bg-[#111111] border-[#333333] text-[#a3a3a3] hover:border-[#4f46e5] hover:text-[#f5f5f5] disabled:opacity-40 disabled:cursor-not-allowed'
+                : 'bg-[var(--lt-surface)] border-[var(--lt-divider-light)] text-[var(--lt-text-muted)] hover:border-[var(--lt-accent)] hover:text-[var(--lt-text-primary)] disabled:opacity-40 disabled:cursor-not-allowed'
             )}
           >
             {copying === 'excel'
@@ -278,7 +278,7 @@ export default function CopyUrlsModal({ open, onClose, items = [], selectionOrde
               'flex items-center gap-2 px-4 h-9 rounded-[8px] text-xs font-semibold border transition-all',
               copying === 'list'
                 ? 'bg-[#064e3b] border-[#10b981]/40 text-[#10b981]'
-                : 'bg-[#111111] border-[#333333] text-[#a3a3a3] hover:border-[#4f46e5] hover:text-[#f5f5f5] disabled:opacity-40 disabled:cursor-not-allowed'
+                : 'bg-[var(--lt-surface)] border-[var(--lt-divider-light)] text-[var(--lt-text-muted)] hover:border-[var(--lt-accent)] hover:text-[var(--lt-text-primary)] disabled:opacity-40 disabled:cursor-not-allowed'
             )}
           >
             {copying === 'list'
@@ -295,7 +295,7 @@ export default function CopyUrlsModal({ open, onClose, items = [], selectionOrde
               'flex items-center gap-2 px-4 h-9 rounded-[8px] text-xs font-semibold border transition-all',
               copying === 'json'
                 ? 'bg-[#064e3b] border-[#10b981]/40 text-[#10b981]'
-                : 'bg-[#111111] border-[#333333] text-[#a3a3a3] hover:border-[#818cf8] hover:text-[#f5f5f5] disabled:opacity-40 disabled:cursor-not-allowed'
+                : 'bg-[var(--lt-surface)] border-[var(--lt-divider-light)] text-[var(--lt-text-muted)] hover:border-[var(--lt-accent-light)] hover:text-[var(--lt-text-primary)] disabled:opacity-40 disabled:cursor-not-allowed'
             )}
           >
             {copying === 'json'
@@ -306,7 +306,7 @@ export default function CopyUrlsModal({ open, onClose, items = [], selectionOrde
 
           <button
             onClick={onClose}
-            className="ml-auto px-4 h-9 rounded-[8px] text-xs text-[#6b7280] hover:text-[#f5f5f5] hover:bg-[#1c1c1c] transition-colors"
+            className="ml-auto px-4 h-9 rounded-[8px] text-xs text-[var(--lt-text-subtle)] hover:text-[var(--lt-text-primary)] hover:bg-[var(--lt-card-hover)] transition-colors"
           >
             Close
           </button>

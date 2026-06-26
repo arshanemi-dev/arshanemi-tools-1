@@ -67,25 +67,25 @@ export default function LoginModal() {
         className="absolute inset-0 bg-black/70 backdrop-blur-sm"
         onClick={handleClose}
       />
-      <div className="relative w-full max-w-sm bg-[#111111] border border-[#262626] rounded-[12px] p-6 shadow-2xl">
+      <div className="relative w-full max-w-sm bg-[var(--lt-surface)] border border-[var(--lt-divider)] rounded-[12px] p-6 shadow-2xl">
         <div className="flex items-center justify-between mb-1">
-          <h2 className="text-base font-semibold text-[#f5f5f5]">Please log in</h2>
+          <h2 className="text-base font-semibold text-[var(--lt-text-primary)]">Please log in</h2>
           <button
             onClick={handleClose}
-            className="p-1 text-[#6b7280] hover:text-[#f5f5f5] transition-colors rounded-[6px] hover:bg-[#1c1c1c]"
+            className="p-1 text-[var(--lt-text-subtle)] hover:text-[var(--lt-text-primary)] transition-colors rounded-[6px] hover:bg-[var(--lt-card-hover)]"
           >
             <X size={15} />
           </button>
         </div>
-        <p className="text-xs text-[#6b7280] mb-5">
+        <p className="text-xs text-[var(--lt-text-subtle)] mb-5">
           Sign in to your admin account to continue.
         </p>
 
         {!API_BASE ? (
           <p className="text-xs text-[#f59e0b] bg-[#451a03] border border-[#f59e0b]/30 rounded-[8px] px-3 py-2">
             Admin API not configured. Set{' '}
-            <code className="text-[#f5f5f5] bg-[#1c1c1c] px-1 py-0.5 rounded">NEXT_PUBLIC_ADMIN_API_URL</code>{' '}
-            in <code className="text-[#f5f5f5] bg-[#1c1c1c] px-1 py-0.5 rounded">.env.local</code>.
+            <code className="text-[var(--lt-text-primary)] bg-[var(--lt-card-hover)] px-1 py-0.5 rounded">NEXT_PUBLIC_ADMIN_API_URL</code>{' '}
+            in <code className="text-[var(--lt-text-primary)] bg-[var(--lt-card-hover)] px-1 py-0.5 rounded">.env.local</code>.
           </p>
         ) : (
           <form onSubmit={handleSubmit} className="flex flex-col gap-3">
@@ -96,7 +96,7 @@ export default function LoginModal() {
               placeholder="Email or Mobile"
               autoComplete="username"
               required
-              className="w-full px-3 py-2.5 bg-[#0a0a0a] border border-[#333333] rounded-[8px] text-sm text-[#f5f5f5] placeholder-[#6b7280] focus:outline-none focus:border-[#4f46e5] transition-colors"
+              className="w-full px-3 py-2.5 bg-[var(--lt-bg-base)] border border-[var(--lt-divider-light)] rounded-[8px] text-sm text-[var(--lt-text-primary)] placeholder-[var(--lt-text-subtle)] focus:outline-none focus:border-[var(--lt-accent)] transition-colors"
             />
             <input
               type="password"
@@ -105,7 +105,7 @@ export default function LoginModal() {
               placeholder="Password"
               autoComplete="current-password"
               required
-              className="w-full px-3 py-2.5 bg-[#0a0a0a] border border-[#333333] rounded-[8px] text-sm text-[#f5f5f5] placeholder-[#6b7280] focus:outline-none focus:border-[#4f46e5] transition-colors"
+              className="w-full px-3 py-2.5 bg-[var(--lt-bg-base)] border border-[var(--lt-divider-light)] rounded-[8px] text-sm text-[var(--lt-text-primary)] placeholder-[var(--lt-text-subtle)] focus:outline-none focus:border-[var(--lt-accent)] transition-colors"
             />
 
             {error && (
@@ -117,7 +117,7 @@ export default function LoginModal() {
             <button
               type="submit"
               disabled={loading}
-              className="flex items-center justify-center gap-2 w-full py-2.5 bg-[#4f46e5] text-white text-sm font-medium rounded-[8px] hover:bg-[#4338ca] disabled:opacity-50 disabled:cursor-not-allowed transition-colors mt-1"
+              className="flex items-center justify-center gap-2 w-full py-2.5 bg-[var(--lt-accent)] text-white text-sm font-medium rounded-[8px] hover:bg-[var(--lt-accent-hover)] disabled:opacity-50 disabled:cursor-not-allowed transition-colors mt-1"
             >
               <LogIn size={14} />
               {loading ? 'Signing in…' : 'Sign in'}

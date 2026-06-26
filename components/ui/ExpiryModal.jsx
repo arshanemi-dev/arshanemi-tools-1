@@ -29,17 +29,17 @@ export default function ExpiryModal({ files, existingExpiry, onSave, onClose }) 
 
   return (
     <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4">
-      <div className="bg-[#111111] border border-[#262626] rounded-[12px] shadow-xl w-full max-w-md">
+      <div className="bg-[var(--lt-surface)] border border-[var(--lt-divider)] rounded-[12px] shadow-xl w-full max-w-md">
 
         {/* Header */}
-        <div className="flex items-center justify-between px-5 py-4 border-b border-[#262626]">
+        <div className="flex items-center justify-between px-5 py-4 border-b border-[var(--lt-divider)]">
           <div className="flex items-center gap-2">
-            <Clock size={15} className="text-[#818cf8]" />
-            <h2 className="font-semibold text-[#f5f5f5] text-sm">
+            <Clock size={15} className="text-[var(--lt-accent-light)]" />
+            <h2 className="font-semibold text-[var(--lt-text-primary)] text-sm">
               {files.length === 1 ? 'Set File Expiry' : `Set Expiry for ${files.length} Files`}
             </h2>
           </div>
-          <button onClick={onClose} className="text-[#6b7280] hover:text-[#f5f5f5] transition-colors">
+          <button onClick={onClose} className="text-[var(--lt-text-subtle)] hover:text-[var(--lt-text-primary)] transition-colors">
             <X size={15} />
           </button>
         </div>
@@ -49,8 +49,8 @@ export default function ExpiryModal({ files, existingExpiry, onSave, onClose }) 
           {/* File list preview */}
           <div className="space-y-1 max-h-28 overflow-y-auto">
             {files.map(f => (
-              <div key={f.path} className="flex items-center gap-2 text-xs text-[#a3a3a3] bg-[#161616] rounded-[6px] px-3 py-1.5">
-                <Clock size={11} className="text-[#4f46e5] shrink-0" />
+              <div key={f.path} className="flex items-center gap-2 text-xs text-[var(--lt-text-muted)] bg-[var(--lt-card)] rounded-[6px] px-3 py-1.5">
+                <Clock size={11} className="text-[var(--lt-accent)] shrink-0" />
                 <span className="truncate">{f.name}</span>
               </div>
             ))}
@@ -58,9 +58,9 @@ export default function ExpiryModal({ files, existingExpiry, onSave, onClose }) 
 
           {/* Current expiry — only for single-file edit */}
           {existingExpiry && files.length === 1 && (
-            <p className="text-xs text-[#6b7280]">
+            <p className="text-xs text-[var(--lt-text-subtle)]">
               Current expiry:{' '}
-              <span className={daysRemaining(existingExpiry) <= 0 ? 'text-red-400' : 'text-[#818cf8]'}>
+              <span className={daysRemaining(existingExpiry) <= 0 ? 'text-red-400' : 'text-[var(--lt-accent-light)]'}>
                 {new Date(existingExpiry).toLocaleDateString()} ({daysRemaining(existingExpiry)}d)
               </span>
             </p>
@@ -68,7 +68,7 @@ export default function ExpiryModal({ files, existingExpiry, onSave, onClose }) 
 
           {/* Expiry picker */}
           <div>
-            <p className="text-xs font-medium text-[#a3a3a3] mb-2">
+            <p className="text-xs font-medium text-[var(--lt-text-muted)] mb-2">
               {existingExpiry ? 'Update Expiry' : 'Set Expiry Date'}
             </p>
             <ExpiryPicker
@@ -84,14 +84,14 @@ export default function ExpiryModal({ files, existingExpiry, onSave, onClose }) 
         <div className="flex justify-end gap-2 px-5 pb-4">
           <button
             onClick={onClose}
-            className="px-4 py-1.5 text-xs border border-[#262626] rounded-[8px] text-[#a3a3a3] hover:bg-[#1c1c1c] transition-colors"
+            className="px-4 py-1.5 text-xs border border-[var(--lt-divider)] rounded-[8px] text-[var(--lt-text-muted)] hover:bg-[var(--lt-card-hover)] transition-colors"
           >
             Cancel
           </button>
           <button
             onClick={handleSave}
             disabled={saving || !expiryIso}
-            className="px-4 py-1.5 text-xs bg-[#4f46e5] text-white rounded-[8px] hover:bg-[#4338ca] transition-colors disabled:opacity-40 flex items-center gap-1.5"
+            className="px-4 py-1.5 text-xs bg-[var(--lt-accent)] text-white rounded-[8px] hover:bg-[var(--lt-accent-hover)] transition-colors disabled:opacity-40 flex items-center gap-1.5"
           >
             {saving ? <Loader2 size={11} className="animate-spin" /> : <Check size={11} />}
             Save Expiry

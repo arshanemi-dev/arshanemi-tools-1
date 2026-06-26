@@ -20,15 +20,15 @@ const TYPE_ICONS = {
   presentation: FileType2, archive: Archive, code: Code, text: FileText, file: File,
 }
 const TYPE_COLORS = {
-  image: 'text-[#818cf8]', video: 'text-[#f59e0b]', audio: 'text-[#10b981]',
+  image: 'text-[var(--lt-accent-light)]', video: 'text-[#f59e0b]', audio: 'text-[#10b981]',
   pdf: 'text-[#ef4444]', doc: 'text-[#3b82f6]', spreadsheet: 'text-[#10b981]',
-  presentation: 'text-[#f97316]', archive: 'text-[#a3a3a3]', code: 'text-[#06b6d4]',
+  presentation: 'text-[#f97316]', archive: 'text-[var(--lt-text-muted)]', code: 'text-[#06b6d4]',
 }
 
 function FileTypeIcon({ name, size = 16, className }) {
   const type = getFileType(name)
   const Icon = TYPE_ICONS[type] ?? File
-  return <Icon size={size} className={cn(TYPE_COLORS[type] ?? 'text-[#6b7280]', className)} />
+  return <Icon size={size} className={cn(TYPE_COLORS[type] ?? 'text-[var(--lt-text-subtle)]', className)} />
 }
 
 /* ─── Inline image thumbnail with loader ────────────────────────── */
@@ -38,7 +38,7 @@ function ImageThumb({ path, name }) {
   return (
     <>
       {status === 'loading' && (
-        <Loader2 size={14} className="animate-spin text-[#6b7280] absolute" />
+        <Loader2 size={14} className="animate-spin text-[var(--lt-text-subtle)] absolute" />
       )}
       <img
         src={`/api/thumbnail?path=${encodeURIComponent(path)}`}
@@ -74,7 +74,7 @@ function ExpiryBadge({ expiryAt, onEdit }) {
     ? 'bg-amber-500/20 text-amber-400'
     : days <= 30
     ? 'bg-yellow-500/15 text-yellow-400'
-    : 'bg-[#1e1b4b] text-[#818cf8]'
+    : 'bg-[var(--lt-accent-muted)] text-[var(--lt-accent-light)]'
   return (
     <button
       onClick={e => { e.stopPropagation(); onEdit() }}
@@ -148,7 +148,7 @@ function RowActions({ item, onDelete, onTriggerInlineRename, expiryRecord, onEdi
             'w-6 h-6 flex items-center justify-center rounded-[5px] transition-colors',
             copyState === 'done'
               ? 'text-[#10b981] bg-[#064e3b]'
-              : 'text-[#6b7280] hover:text-[#818cf8] hover:bg-[#1e1b4b]'
+              : 'text-[var(--lt-text-subtle)] hover:text-[var(--lt-accent-light)] hover:bg-[var(--lt-accent-muted)]'
           )}
         >
           {copyState === 'loading' ? <Loader2 size={11} className="animate-spin" />
@@ -163,7 +163,7 @@ function RowActions({ item, onDelete, onTriggerInlineRename, expiryRecord, onEdi
           onClick={handleDownload}
           disabled={dlState === 'loading'}
           title="Download"
-          className="w-6 h-6 flex items-center justify-center rounded-[5px] text-[#6b7280] hover:text-[#4f46e5] hover:bg-[#1e1b4b] transition-colors"
+          className="w-6 h-6 flex items-center justify-center rounded-[5px] text-[var(--lt-text-subtle)] hover:text-[var(--lt-accent)] hover:bg-[var(--lt-accent-muted)] transition-colors"
         >
           {dlState === 'loading'
             ? <Loader2 size={11} className="animate-spin" />
@@ -179,8 +179,8 @@ function RowActions({ item, onDelete, onTriggerInlineRename, expiryRecord, onEdi
           className={cn(
             'w-6 h-6 flex items-center justify-center rounded-[5px] transition-colors',
             expiryRecord
-              ? 'text-[#818cf8] bg-[#1e1b4b] hover:bg-[#2d2a6e]'
-              : 'text-[#6b7280] hover:text-[#818cf8] hover:bg-[#1e1b4b]'
+              ? 'text-[var(--lt-accent-light)] bg-[var(--lt-accent-muted)] hover:bg-[var(--lt-accent-muted)]/70'
+              : 'text-[var(--lt-text-subtle)] hover:text-[var(--lt-accent-light)] hover:bg-[var(--lt-accent-muted)]'
           )}
         >
           <Clock size={11} />
@@ -191,7 +191,7 @@ function RowActions({ item, onDelete, onTriggerInlineRename, expiryRecord, onEdi
       <button
         onClick={e => { e.stopPropagation(); onTriggerInlineRename(item) }}
         title="Rename"
-        className="w-6 h-6 flex items-center justify-center rounded-[5px] text-[#6b7280] hover:text-[#f5f5f5] hover:bg-[#262626] transition-colors"
+        className="w-6 h-6 flex items-center justify-center rounded-[5px] text-[var(--lt-text-subtle)] hover:text-[var(--lt-text-primary)] hover:bg-[var(--lt-divider)] transition-colors"
       >
         <Pencil size={11} />
       </button>
@@ -200,7 +200,7 @@ function RowActions({ item, onDelete, onTriggerInlineRename, expiryRecord, onEdi
       <button
         onClick={e => { e.stopPropagation(); onDelete([item.path]) }}
         title="Delete"
-        className="w-6 h-6 flex items-center justify-center rounded-[5px] text-[#6b7280] hover:text-[#ef4444] hover:bg-[#450a0a] transition-colors"
+        className="w-6 h-6 flex items-center justify-center rounded-[5px] text-[var(--lt-text-subtle)] hover:text-[#ef4444] hover:bg-[#450a0a] transition-colors"
       >
         <Trash2 size={11} />
       </button>
@@ -218,12 +218,12 @@ function SortTh({ col, label, colSort, onSort, className }) {
       className={cn('px-3 py-2 text-left select-none', className)}
       onClick={() => onSort(col)}
     >
-      <button className="flex items-center gap-1 text-[11px] font-semibold text-[#6b7280] hover:text-[#a3a3a3] transition-colors whitespace-nowrap cursor-pointer">
+      <button className="flex items-center gap-1 text-[11px] font-semibold text-[var(--lt-text-subtle)] hover:text-[var(--lt-text-muted)] transition-colors whitespace-nowrap cursor-pointer">
         {label}
         {active
           ? dir === 'asc'
-            ? <ChevronUp   size={11} className="text-[#818cf8]" />
-            : <ChevronDown size={11} className="text-[#818cf8]" />
+            ? <ChevronUp   size={11} className="text-[var(--lt-accent-light)]" />
+            : <ChevronDown size={11} className="text-[var(--lt-accent-light)]" />
           : <ChevronsUpDown size={11} className="opacity-40" />
         }
       </button>
@@ -365,7 +365,7 @@ export default function FileList({
   if (allItems.length === 0 && !Object.values(colSearch).some(Boolean)) {
     return (
       <div className="flex flex-col items-center justify-center py-24 text-center">
-        <p className="text-[#a3a3a3] text-sm">This folder is empty</p>
+        <p className="text-[var(--lt-text-muted)] text-sm">This folder is empty</p>
       </div>
     )
   }
@@ -373,10 +373,10 @@ export default function FileList({
   const hasRowCallbacks = !!onDelete
 
   return (
-    <div className="overflow-x-auto rounded-[8px] border border-[#1e1e1e]">
+    <div className="overflow-x-auto rounded-[8px] border border-[var(--lt-divider)]">
       <table className="w-full text-xs border-collapse">
         <thead>
-          <tr className="bg-[#0d0d0d] border-b border-[#1e1e1e]">
+          <tr className="bg-[var(--lt-surface)] border-b border-[var(--lt-divider)]">
             <th className="w-8 px-2 py-2" onClick={e => e.stopPropagation()}>
               {onSelectAll && (() => {
                 const total   = sortedFolders.length + sortedFiles.length
@@ -388,20 +388,20 @@ export default function FileList({
                     title={allSel ? 'Deselect all' : 'Select all'}
                     className={cn(
                       'w-5 h-5 rounded-[4px] border-2 flex items-center justify-center transition-all shrink-0',
-                      allSel   ? 'bg-[#4f46e5] border-[#4f46e5]'
-                      : partial ? 'border-[#4f46e5] bg-transparent'
-                      :           'border-[#333333] hover:border-[#4f46e5] bg-transparent'
+                      allSel   ? 'bg-[var(--lt-accent)] border-[var(--lt-accent)]'
+                      : partial ? 'border-[var(--lt-accent)] bg-transparent'
+                      :           'border-[var(--lt-divider-light)] hover:border-[var(--lt-accent)] bg-transparent'
                     )}
                   >
                     {allSel   && <Check size={11} className="text-white" />}
-                    {partial  && <Minus size={11} className="text-[#818cf8]" />}
+                    {partial  && <Minus size={11} className="text-[var(--lt-accent-light)]" />}
                   </button>
                 )
               })()}
             </th>
             <th className="w-10 px-3 py-2" />
             <SortTh col="name" label="Name" colSort={colSort} onSort={handleSort} className="min-w-[180px]" />
-            <th className="w-14 px-3 py-2 text-left text-[11px] font-semibold text-[#6b7280]">Link</th>
+            <th className="w-14 px-3 py-2 text-left text-[11px] font-semibold text-[var(--lt-text-subtle)]">Link</th>
             {hasRowCallbacks && <th className="w-36 px-3 py-2" />}
           </tr>
         </thead>
@@ -409,7 +409,7 @@ export default function FileList({
         <tbody>
           {allItems.length === 0 ? (
             <tr>
-              <td colSpan={hasRowCallbacks ? 5 : 4} className="py-12 text-center text-xs text-[#6b7280]">
+              <td colSpan={hasRowCallbacks ? 5 : 4} className="py-12 text-center text-xs text-[var(--lt-text-subtle)]">
                 No results match your filters
               </td>
             </tr>
@@ -477,10 +477,10 @@ function ListRow({
       onDoubleClick={() => !isRenaming && isFolder && onNavigate(item.path)}
       onContextMenu={e => onContextMenu(e, item)}
       className={cn(
-        'group/row border-b border-[#1a1a1a] last:border-0 cursor-pointer select-none transition-colors',
-        isSelected ? 'bg-[#1e1b4b]' : 'hover:bg-[#141414]',
+        'group/row border-b border-[var(--lt-divider)] last:border-0 cursor-pointer select-none transition-colors',
+        isSelected ? 'bg-[var(--lt-accent-muted)]' : 'hover:bg-[var(--lt-surface)]',
         isCut && 'opacity-50',
-        isRenaming && 'bg-[#0f0f1a]',
+        isRenaming && 'bg-[var(--lt-accent-muted)]',
       )}
     >
       {/* Checkbox */}
@@ -491,8 +491,8 @@ function ListRow({
           className={cn(
             'w-5 h-5 rounded-[4px] border-2 flex items-center justify-center transition-all shrink-0',
             isSelected
-              ? 'bg-[#4f46e5] border-[#4f46e5]'
-              : 'border-[#333333] hover:border-[#4f46e5] bg-transparent'
+              ? 'bg-[var(--lt-accent)] border-[var(--lt-accent)]'
+              : 'border-[var(--lt-divider-light)] hover:border-[var(--lt-accent)] bg-transparent'
           )}
         >
           {isSelected && <Check size={11} className="text-white" />}
@@ -501,16 +501,16 @@ function ListRow({
 
       {/* Thumbnail */}
       <td className="px-3 py-2 w-10">
-        <div className="relative w-8 h-8 shrink-0 flex items-center justify-center rounded-[6px] bg-[#161616]">
+        <div className="relative w-8 h-8 shrink-0 flex items-center justify-center rounded-[6px] bg-[var(--lt-card)]">
           {isFolder ? (
-            <Folder size={18} className="text-[#4f46e5]" fill="rgba(79,70,229,0.2)" />
+            <Folder size={18} className="text-[var(--lt-accent)]" fill="rgba(79,70,229,0.2)" />
           ) : isImage(item.name) ? (
             <ImageThumb path={item.path} name={item.name} />
           ) : (
             <FileTypeIcon name={item.name} size={16} />
           )}
           {selectionIndex != null && (
-            <span className="absolute -top-1.5 -right-1.5 min-w-[16px] h-4 px-0.5 rounded-full bg-[#4f46e5] text-white text-[9px] font-bold flex items-center justify-center shadow-lg z-10">
+            <span className="absolute -top-1.5 -right-1.5 min-w-[16px] h-4 px-0.5 rounded-full bg-[var(--lt-accent)] text-white text-[9px] font-bold flex items-center justify-center shadow-lg z-10">
               {selectionIndex}
             </span>
           )}
@@ -535,34 +535,34 @@ function ListRow({
                 if (e.key === 'Escape') { e.preventDefault(); onCancelInlineRename() }
                 if (e.key === 'Enter')  { e.preventDefault(); onSaveInlineRename() }
               }}
-              className="flex-1 min-w-0 px-2 py-0.5 text-xs bg-[#0a0a0a] border border-[#4f46e5] rounded-[5px] text-[#f5f5f5] focus:outline-none"
+              className="flex-1 min-w-0 px-2 py-0.5 text-xs bg-[var(--lt-bg-base)] border border-[var(--lt-accent)] rounded-[5px] text-[var(--lt-text-primary)] focus:outline-none"
             />
             {/* Show extension as read-only hint for files */}
             {!isFolder && ext && (
-              <span className="text-[10px] text-[#6b7280] shrink-0 font-mono">{ext}</span>
+              <span className="text-[10px] text-[var(--lt-text-subtle)] shrink-0 font-mono">{ext}</span>
             )}
             <button
               type="submit"
               disabled={inlineRenameBusy || !inlineRenameName.trim()}
-              className="w-5 h-5 flex items-center justify-center rounded-[4px] bg-[#4f46e5] text-white disabled:opacity-40 shrink-0 hover:bg-[#4338ca] transition-colors"
+              className="w-5 h-5 flex items-center justify-center rounded-[4px] bg-[var(--lt-accent)] text-white disabled:opacity-40 shrink-0 hover:bg-[var(--lt-accent-hover)] transition-colors"
             >
               {inlineRenameBusy ? <Loader2 size={9} className="animate-spin" /> : <Check size={9} />}
             </button>
             <button
               type="button"
               onClick={e => { e.stopPropagation(); onCancelInlineRename() }}
-              className="w-5 h-5 flex items-center justify-center rounded-[4px] text-[#6b7280] hover:text-[#f5f5f5] hover:bg-[#262626] shrink-0 transition-colors"
+              className="w-5 h-5 flex items-center justify-center rounded-[4px] text-[var(--lt-text-subtle)] hover:text-[var(--lt-text-primary)] hover:bg-[var(--lt-divider)] shrink-0 transition-colors"
             >
               <X size={9} />
             </button>
           </form>
         ) : (
           <div className="flex items-center gap-2 min-w-0">
-            <span className="text-xs text-[#f5f5f5] truncate max-w-[260px]" title={item.name}>
+            <span className="text-xs text-[var(--lt-text-primary)] truncate max-w-[260px]" title={item.name}>
               {item.name.length > 40 ? item.name.slice(0, 38) + '…' : item.name}
             </span>
             {item.folderSource && (
-              <span className="text-[9px] px-1 py-0.5 rounded bg-[#1e1b4b] text-[#818cf8] shrink-0">
+              <span className="text-[9px] px-1 py-0.5 rounded bg-[var(--lt-accent-muted)] text-[var(--lt-accent-light)] shrink-0">
                 {item.folderSource}
               </span>
             )}

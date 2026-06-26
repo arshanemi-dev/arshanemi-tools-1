@@ -7,31 +7,31 @@ const IS_CONNECT = process.env.NEXT_PUBLIC_IS_CONNECT?.toLowerCase() === 'true'
 
 export default function AuthGate() {
   return (
-    <div className="fixed inset-0 z-40 flex items-center justify-center p-4 bg-[#0a0a0a]">
+    <div className="fixed inset-0 z-40 flex items-center justify-center p-4 bg-[var(--lt-bg-base)]">
       {/* Subtle radial glow */}
       <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
         <div className="w-[500px] h-[500px] rounded-full opacity-[0.04] blur-3xl"
-             style={{ background: 'radial-gradient(circle, #4f46e5 0%, transparent 70%)' }} />
+             style={{ background: 'radial-gradient(circle, var(--lt-accent) 0%, transparent 70%)' }} />
       </div>
 
       <div className="relative w-full max-w-sm">
         {/* Card */}
-        <div className="bg-[#111111] border border-[#1e1e1e] rounded-[16px] p-8 flex flex-col items-center text-center gap-5 shadow-2xl">
+        <div className="bg-[var(--lt-surface)] border border-[var(--lt-divider)] rounded-[16px] p-8 flex flex-col items-center text-center gap-5 shadow-2xl">
 
           {/* Icon */}
           <div className="relative">
-            <div className="w-16 h-16 rounded-[14px] bg-[#0f0f1a] border border-[#4f46e5]/25 flex items-center justify-center">
-              <LockKeyhole size={28} className="text-[#4f46e5]" />
+            <div className="w-16 h-16 rounded-[14px] bg-[var(--lt-accent-muted)] border border-[var(--lt-accent)]/25 flex items-center justify-center">
+              <LockKeyhole size={28} className="text-[var(--lt-accent)]" />
             </div>
-            <span className="absolute -top-1 -right-1 w-4 h-4 rounded-full bg-[#ef4444] border-2 border-[#111111]" />
+            <span className="absolute -top-1 -right-1 w-4 h-4 rounded-full bg-[#ef4444] border-2 border-[var(--lt-surface)]" />
           </div>
 
           {/* Copy */}
           <div>
-            <h2 className="text-lg font-bold text-[#f5f5f5] mb-2">
+            <h2 className="text-lg font-bold text-[var(--lt-text-primary)] mb-2">
               {IS_CONNECT ? 'Sign in required' : 'No active user'}
             </h2>
-            <p className="text-sm text-[#6b7280] leading-relaxed">
+            <p className="text-sm text-[var(--lt-text-subtle)] leading-relaxed">
               {IS_CONNECT
                 ? 'Sign in to your admin account to access the file manager.'
                 : 'Create and activate a local user in Settings to get started.'}
@@ -39,7 +39,7 @@ export default function AuthGate() {
           </div>
 
           {/* Divider */}
-          <div className="w-full h-px bg-[#1a1a1a]" />
+          <div className="w-full h-px bg-[var(--lt-divider)]" />
 
           {/* Steps hint */}
           <div className="w-full flex flex-col gap-2.5">
@@ -57,7 +57,7 @@ export default function AuthGate() {
           {/* CTA */}
           <Link
             href="/settings"
-            className="w-full flex items-center justify-center gap-2 py-3 bg-[#4f46e5] hover:bg-[#4338ca] text-white text-sm font-bold rounded-[10px] transition-all active:scale-[0.98]"
+            className="w-full flex items-center justify-center gap-2 py-3 bg-[var(--lt-accent)] hover:bg-[var(--lt-accent-hover)] text-white text-sm font-bold rounded-[10px] transition-all active:scale-[0.98]"
           >
             <Settings size={15} />
             Go to Settings
@@ -65,7 +65,7 @@ export default function AuthGate() {
           </Link>
 
           {/* Hint */}
-          <p className="text-[10px] text-[#3a3a3a]">
+          <p className="text-[10px] text-[var(--lt-text-subtle)]">
             You'll be brought back here after setup
           </p>
         </div>
@@ -77,10 +77,10 @@ export default function AuthGate() {
 function Step({ n, text }) {
   return (
     <div className="flex items-center gap-3 text-left">
-      <span className="w-5 h-5 rounded-full bg-[#1e1e1e] border border-[#2a2a2a] flex items-center justify-center text-[10px] font-bold text-[#6b7280] shrink-0">
+      <span className="w-5 h-5 rounded-full bg-[var(--lt-divider)] border border-[var(--lt-divider-light)] flex items-center justify-center text-[10px] font-bold text-[var(--lt-text-subtle)] shrink-0">
         {n}
       </span>
-      <span className="text-xs text-[#6b7280]">{text}</span>
+      <span className="text-xs text-[var(--lt-text-subtle)]">{text}</span>
     </div>
   )
 }

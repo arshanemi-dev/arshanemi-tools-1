@@ -15,7 +15,7 @@ function StatusBadge({ days }) {
     return <span className="text-[9px] font-medium px-1.5 py-0.5 rounded-full bg-red-500/20 text-red-400">Expired</span>
   if (days <= 7)
     return <span className="text-[9px] font-medium px-1.5 py-0.5 rounded-full bg-amber-500/20 text-amber-400">{days}d</span>
-  return <span className="text-[9px] font-medium px-1.5 py-0.5 rounded-full bg-[#1e1b4b] text-[#818cf8]">{days}d</span>
+  return <span className="text-[9px] font-medium px-1.5 py-0.5 rounded-full bg-[var(--lt-accent-muted)] text-[var(--lt-accent-light)]">{days}d</span>
 }
 
 const EMPTY_ROW = { name: '', expiryAt: '' }
@@ -145,31 +145,31 @@ export default function FilesExpiryManagerModal({ onClose }) {
   /* ── render ─────────────────────────────────────────────────────── */
   return (
     <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4">
-      <div className="bg-[#111111] border border-[#262626] rounded-[14px] shadow-2xl w-full max-w-2xl flex flex-col max-h-[90vh]">
+      <div className="bg-[var(--lt-surface)] border border-[var(--lt-divider)] rounded-[14px] shadow-2xl w-full max-w-2xl flex flex-col max-h-[90vh]">
 
         {/* Header */}
-        <div className="flex items-center justify-between px-5 py-4 border-b border-[#1e1e1e] shrink-0">
+        <div className="flex items-center justify-between px-5 py-4 border-b border-[var(--lt-divider)] shrink-0">
           <div className="flex items-center gap-2.5">
-            <div className="w-7 h-7 rounded-[7px] bg-[#1e1b4b] border border-[#4f46e5]/40 flex items-center justify-center">
-              <Clock size={14} className="text-[#818cf8]" />
+            <div className="w-7 h-7 rounded-[7px] bg-[var(--lt-accent-muted)] border border-[var(--lt-accent)]/40 flex items-center justify-center">
+              <Clock size={14} className="text-[var(--lt-accent-light)]" />
             </div>
             <div>
-              <h2 className="text-sm font-semibold text-[#f5f5f5]">Files Expiry Manager</h2>
-              <p className="text-[10px] text-[#6b7280]">Track and manage file expiry dates</p>
+              <h2 className="text-sm font-semibold text-[var(--lt-text-primary)]">Files Expiry Manager</h2>
+              <p className="text-[10px] text-[var(--lt-text-subtle)]">Track and manage file expiry dates</p>
             </div>
           </div>
-          <button onClick={onClose} className="text-[#6b7280] hover:text-[#f5f5f5] transition-colors">
+          <button onClick={onClose} className="text-[var(--lt-text-subtle)] hover:text-[var(--lt-text-primary)] transition-colors">
             <X size={15} />
           </button>
         </div>
 
         {/* Toolbar */}
-        <div className="flex items-center gap-2 px-5 py-3 border-b border-[#1a1a1a] shrink-0">
+        <div className="flex items-center gap-2 px-5 py-3 border-b border-[var(--lt-divider)] shrink-0">
           {someChecked && (
             <>
               <button
                 onClick={() => { setBulkDate(''); setError(''); setPanel('bulkExpiry') }}
-                className="flex items-center gap-1.5 px-2.5 h-7 text-xs rounded-[7px] bg-[#1e1b4b] border border-[#4f46e5]/40 text-[#818cf8] hover:bg-[#2d2a6e] transition-colors"
+                className="flex items-center gap-1.5 px-2.5 h-7 text-xs rounded-[7px] bg-[var(--lt-accent-muted)] border border-[var(--lt-accent)]/40 text-[var(--lt-accent-light)] hover:bg-[#2d2a6e] transition-colors"
               >
                 <Clock size={11} />
                 Edit Expiry ({selected.size})
@@ -181,50 +181,50 @@ export default function FilesExpiryManagerModal({ onClose }) {
                 <Trash2 size={11} />
                 Delete ({selected.size})
               </button>
-              <div className="w-px h-4 bg-[#262626] mx-1" />
+              <div className="w-px h-4 bg-[var(--lt-divider)] mx-1" />
             </>
           )}
           <button
             onClick={() => { setAddRows([{ ...EMPTY_ROW }]); setError(''); setPanel('add') }}
-            className="flex items-center gap-1.5 px-2.5 h-7 text-xs rounded-[7px] bg-[#4f46e5] text-white hover:bg-[#4338ca] transition-colors"
+            className="flex items-center gap-1.5 px-2.5 h-7 text-xs rounded-[7px] bg-[var(--lt-accent)] text-white hover:bg-[var(--lt-accent-hover)] transition-colors"
           >
             <Plus size={11} />
             Add Files
           </button>
-          <span className="ml-auto text-[10px] text-[#6b7280]">{records.length} record{records.length !== 1 ? 's' : ''}</span>
+          <span className="ml-auto text-[10px] text-[var(--lt-text-subtle)]">{records.length} record{records.length !== 1 ? 's' : ''}</span>
         </div>
 
         {/* Records list */}
         <div className="flex-1 overflow-y-auto">
           {loading ? (
             <div className="flex items-center justify-center h-40">
-              <Loader2 size={18} className="animate-spin text-[#4f46e5]" />
+              <Loader2 size={18} className="animate-spin text-[var(--lt-accent)]" />
             </div>
           ) : records.length === 0 ? (
             <div className="flex flex-col items-center justify-center h-40 text-center">
-              <AlertTriangle size={24} className="text-[#333333] mb-2" />
-              <p className="text-sm text-[#a3a3a3] font-medium">No files tracked yet</p>
-              <p className="text-xs text-[#6b7280]">Click "Add Files" to start tracking</p>
+              <AlertTriangle size={24} className="text-[var(--lt-divider-light)] mb-2" />
+              <p className="text-sm text-[var(--lt-text-muted)] font-medium">No files tracked yet</p>
+              <p className="text-xs text-[var(--lt-text-subtle)]">Click "Add Files" to start tracking</p>
             </div>
           ) : (
             <table className="w-full text-xs">
-              <thead className="sticky top-0 bg-[#0d0d0d] border-b border-[#1e1e1e]">
+              <thead className="sticky top-0 bg-[var(--lt-surface)] border-b border-[var(--lt-divider)]">
                 <tr>
                   <th className="w-8 px-3 py-2.5">
                     <input
                       type="checkbox"
                       checked={allChecked}
                       onChange={toggleAll}
-                      className="rounded border-[#333] bg-transparent accent-[#4f46e5]"
+                      className="rounded border-[#333] bg-transparent accent-[var(--lt-accent)]"
                     />
                   </th>
-                  <th className="px-3 py-2.5 text-left text-[10px] font-semibold text-[#6b7280]">File Name</th>
-                  <th className="px-3 py-2.5 text-left text-[10px] font-semibold text-[#6b7280] w-32">Expiry</th>
-                  <th className="px-3 py-2.5 text-left text-[10px] font-semibold text-[#6b7280] w-16">Status</th>
+                  <th className="px-3 py-2.5 text-left text-[10px] font-semibold text-[var(--lt-text-subtle)]">File Name</th>
+                  <th className="px-3 py-2.5 text-left text-[10px] font-semibold text-[var(--lt-text-subtle)] w-32">Expiry</th>
+                  <th className="px-3 py-2.5 text-left text-[10px] font-semibold text-[var(--lt-text-subtle)] w-16">Status</th>
                   <th className="px-3 py-2.5 w-16" />
                 </tr>
               </thead>
-              <tbody className="divide-y divide-[#161616]">
+              <tbody className="divide-y divide-[var(--lt-card)]">
                 {records.map(r => {
                   const expiryVal = r.expiryAt ?? r.expiry_at
                   const days      = daysRemaining(expiryVal)
@@ -233,7 +233,7 @@ export default function FilesExpiryManagerModal({ onClose }) {
                       key={r.id}
                       className={cn(
                         'group transition-colors',
-                        selected.has(r.id) ? 'bg-[#1e1b4b]/30' : 'hover:bg-[#161616]'
+                        selected.has(r.id) ? 'bg-[var(--lt-accent-muted)]/30' : 'hover:bg-[var(--lt-card)]'
                       )}
                     >
                       <td className="px-3 py-2">
@@ -241,13 +241,13 @@ export default function FilesExpiryManagerModal({ onClose }) {
                           type="checkbox"
                           checked={selected.has(r.id)}
                           onChange={() => toggleOne(r.id)}
-                          className="rounded border-[#333] bg-transparent accent-[#4f46e5]"
+                          className="rounded border-[#333] bg-transparent accent-[var(--lt-accent)]"
                         />
                       </td>
-                      <td className="px-3 py-2 text-[#f5f5f5] font-medium truncate max-w-[260px]">
+                      <td className="px-3 py-2 text-[var(--lt-text-primary)] font-medium truncate max-w-[260px]">
                         {r.name}
                       </td>
-                      <td className="px-3 py-2 text-[#a3a3a3]">
+                      <td className="px-3 py-2 text-[var(--lt-text-muted)]">
                         {new Date(expiryVal).toLocaleDateString('en-IN', {
                           day: '2-digit', month: 'short', year: 'numeric',
                         })}
@@ -260,14 +260,14 @@ export default function FilesExpiryManagerModal({ onClose }) {
                           <button
                             onClick={() => openEditOne(r)}
                             title="Edit"
-                            className="w-6 h-6 flex items-center justify-center rounded-[5px] text-[#6b7280] hover:text-[#818cf8] hover:bg-[#1e1b4b] transition-colors"
+                            className="w-6 h-6 flex items-center justify-center rounded-[5px] text-[var(--lt-text-subtle)] hover:text-[var(--lt-accent-light)] hover:bg-[var(--lt-accent-muted)] transition-colors"
                           >
                             <Pencil size={11} />
                           </button>
                           <button
                             onClick={() => handleDelete([r.id])}
                             title="Delete"
-                            className="w-6 h-6 flex items-center justify-center rounded-[5px] text-[#6b7280] hover:text-red-400 hover:bg-red-500/10 transition-colors"
+                            className="w-6 h-6 flex items-center justify-center rounded-[5px] text-[var(--lt-text-subtle)] hover:text-red-400 hover:bg-red-500/10 transition-colors"
                           >
                             <Trash2 size={11} />
                           </button>
@@ -294,18 +294,18 @@ export default function FilesExpiryManagerModal({ onClose }) {
                     placeholder="File name or path"
                     value={row.name}
                     onChange={e => setAddRows(prev => prev.map((r, j) => j === i ? { ...r, name: e.target.value } : r))}
-                    className="flex-1 bg-[#0a0a0a] border border-[#262626] rounded-[7px] px-3 py-1.5 text-xs text-[#f5f5f5] placeholder:text-[#4b4b4b] focus:outline-none focus:ring-1 focus:ring-[#4f46e5]/50"
+                    className="flex-1 bg-[var(--lt-bg-base)] border border-[var(--lt-divider)] rounded-[7px] px-3 py-1.5 text-xs text-[var(--lt-text-primary)] placeholder:text-[#4b4b4b] focus:outline-none focus:ring-1 focus:ring-[var(--lt-accent)]/50"
                   />
                   <input
                     type="date"
                     value={row.expiryAt}
                     onChange={e => setAddRows(prev => prev.map((r, j) => j === i ? { ...r, expiryAt: e.target.value } : r))}
-                    className="bg-[#0a0a0a] border border-[#262626] rounded-[7px] px-3 py-1.5 text-xs text-[#f5f5f5] focus:outline-none focus:ring-1 focus:ring-[#4f46e5]/50"
+                    className="bg-[var(--lt-bg-base)] border border-[var(--lt-divider)] rounded-[7px] px-3 py-1.5 text-xs text-[var(--lt-text-primary)] focus:outline-none focus:ring-1 focus:ring-[var(--lt-accent)]/50"
                   />
                   {addRows.length > 1 && (
                     <button
                       onClick={() => setAddRows(prev => prev.filter((_, j) => j !== i))}
-                      className="text-[#6b7280] hover:text-red-400 transition-colors"
+                      className="text-[var(--lt-text-subtle)] hover:text-red-400 transition-colors"
                     >
                       <X size={13} />
                     </button>
@@ -314,7 +314,7 @@ export default function FilesExpiryManagerModal({ onClose }) {
               ))}
               <button
                 onClick={() => setAddRows(prev => [...prev, { ...EMPTY_ROW }])}
-                className="text-[10px] text-[#4f46e5] hover:text-[#818cf8] transition-colors"
+                className="text-[10px] text-[var(--lt-accent)] hover:text-[var(--lt-accent-light)] transition-colors"
               >
                 + Add another row
               </button>
@@ -329,21 +329,21 @@ export default function FilesExpiryManagerModal({ onClose }) {
           <InlinePanel title="Edit File Expiry" onClose={() => setPanel(null)}>
             <div className="grid grid-cols-2 gap-3 mb-3">
               <div>
-                <label className="block text-[10px] text-[#6b7280] mb-1">File Name</label>
+                <label className="block text-[10px] text-[var(--lt-text-subtle)] mb-1">File Name</label>
                 <input
                   type="text"
                   value={editForm.name}
                   onChange={e => setEditForm(f => ({ ...f, name: e.target.value }))}
-                  className="w-full bg-[#0a0a0a] border border-[#262626] rounded-[7px] px-3 py-1.5 text-xs text-[#f5f5f5] focus:outline-none focus:ring-1 focus:ring-[#4f46e5]/50"
+                  className="w-full bg-[var(--lt-bg-base)] border border-[var(--lt-divider)] rounded-[7px] px-3 py-1.5 text-xs text-[var(--lt-text-primary)] focus:outline-none focus:ring-1 focus:ring-[var(--lt-accent)]/50"
                 />
               </div>
               <div>
-                <label className="block text-[10px] text-[#6b7280] mb-1">Expiry Date</label>
+                <label className="block text-[10px] text-[var(--lt-text-subtle)] mb-1">Expiry Date</label>
                 <input
                   type="date"
                   value={editForm.expiryAt}
                   onChange={e => setEditForm(f => ({ ...f, expiryAt: e.target.value }))}
-                  className="w-full bg-[#0a0a0a] border border-[#262626] rounded-[7px] px-3 py-1.5 text-xs text-[#f5f5f5] focus:outline-none focus:ring-1 focus:ring-[#4f46e5]/50"
+                  className="w-full bg-[var(--lt-bg-base)] border border-[var(--lt-divider)] rounded-[7px] px-3 py-1.5 text-xs text-[var(--lt-text-primary)] focus:outline-none focus:ring-1 focus:ring-[var(--lt-accent)]/50"
                 />
               </div>
             </div>
@@ -357,12 +357,12 @@ export default function FilesExpiryManagerModal({ onClose }) {
           <InlinePanel title={`Update Expiry for ${selected.size} File(s)`} onClose={() => setPanel(null)}>
             <div className="flex items-end gap-3 mb-3">
               <div className="flex-1">
-                <label className="block text-[10px] text-[#6b7280] mb-1">New Expiry Date</label>
+                <label className="block text-[10px] text-[var(--lt-text-subtle)] mb-1">New Expiry Date</label>
                 <input
                   type="date"
                   value={bulkDate}
                   onChange={e => setBulkDate(e.target.value)}
-                  className="w-full bg-[#0a0a0a] border border-[#262626] rounded-[7px] px-3 py-1.5 text-xs text-[#f5f5f5] focus:outline-none focus:ring-1 focus:ring-[#4f46e5]/50"
+                  className="w-full bg-[var(--lt-bg-base)] border border-[var(--lt-divider)] rounded-[7px] px-3 py-1.5 text-xs text-[var(--lt-text-primary)] focus:outline-none focus:ring-1 focus:ring-[var(--lt-accent)]/50"
                 />
               </div>
             </div>
@@ -378,10 +378,10 @@ export default function FilesExpiryManagerModal({ onClose }) {
 /* ── sub-components ──────────────────────────────────────────────── */
 function InlinePanel({ title, onClose, children }) {
   return (
-    <div className="border-t border-[#262626] bg-[#0d0d0d] rounded-b-[14px] px-5 py-4 shrink-0">
+    <div className="border-t border-[var(--lt-divider)] bg-[var(--lt-surface)] rounded-b-[14px] px-5 py-4 shrink-0">
       <div className="flex items-center justify-between mb-3">
-        <span className="text-xs font-semibold text-[#f5f5f5]">{title}</span>
-        <button onClick={onClose} className="text-[#6b7280] hover:text-[#f5f5f5] transition-colors">
+        <span className="text-xs font-semibold text-[var(--lt-text-primary)]">{title}</span>
+        <button onClick={onClose} className="text-[var(--lt-text-subtle)] hover:text-[var(--lt-text-primary)] transition-colors">
           <X size={13} />
         </button>
       </div>
@@ -395,14 +395,14 @@ function PanelActions({ onCancel, onSave, saving, saveLabel = 'Save' }) {
     <div className="flex justify-end gap-2">
       <button
         onClick={onCancel}
-        className="px-3 py-1.5 text-xs border border-[#262626] rounded-[7px] text-[#a3a3a3] hover:bg-[#1c1c1c] transition-colors"
+        className="px-3 py-1.5 text-xs border border-[var(--lt-divider)] rounded-[7px] text-[var(--lt-text-muted)] hover:bg-[var(--lt-card-hover)] transition-colors"
       >
         Cancel
       </button>
       <button
         onClick={onSave}
         disabled={saving}
-        className="px-3 py-1.5 text-xs bg-[#4f46e5] text-white rounded-[7px] hover:bg-[#4338ca] transition-colors disabled:opacity-60 flex items-center gap-1.5"
+        className="px-3 py-1.5 text-xs bg-[var(--lt-accent)] text-white rounded-[7px] hover:bg-[var(--lt-accent-hover)] transition-colors disabled:opacity-60 flex items-center gap-1.5"
       >
         {saving ? <Loader2 size={10} className="animate-spin" /> : <Check size={10} />}
         {saveLabel}

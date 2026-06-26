@@ -33,7 +33,7 @@ export default function Toolbar({
         Select All
       </Button>
 
-      <div className="w-px h-6 bg-[#262626]" />
+      <div className="w-px h-6 bg-[var(--lt-divider)]" />
 
       <Button
         size="sm"
@@ -59,11 +59,11 @@ export default function Toolbar({
       <div className="ml-auto flex items-center gap-1">
         {/* Sort dropdown */}
         <div className="relative group">
-          <button className="flex items-center gap-1.5 px-3 h-8 text-sm rounded-[8px] bg-[#1c1c1c] border border-[#333333] text-[#a3a3a3] hover:text-[#f5f5f5] hover:border-[#4f46e5] transition-all cursor-pointer">
+          <button className="flex items-center gap-1.5 px-3 h-8 text-sm rounded-[8px] bg-[var(--lt-card-hover)] border border-[var(--lt-divider-light)] text-[var(--lt-text-muted)] hover:text-[var(--lt-text-primary)] hover:border-[var(--lt-accent)] transition-all cursor-pointer">
             <ArrowUpDown size={13} />
             <span>{SORT_OPTIONS.find(o => o.value === sortBy)?.label ?? 'Sort'}</span>
           </button>
-          <div className="absolute right-0 top-full mt-1 py-1 w-36 bg-[#161616] border border-[#333333] rounded-[8px] shadow-xl z-30 hidden group-hover:block">
+          <div className="absolute right-0 top-full mt-1 py-1 w-36 bg-[var(--lt-card)] border border-[var(--lt-divider-light)] rounded-[8px] shadow-xl z-30 hidden group-hover:block">
             {SORT_OPTIONS.map(opt => (
               <button
                 key={opt.value}
@@ -71,8 +71,8 @@ export default function Toolbar({
                 className={cn(
                   'w-full text-left px-3 py-2 text-sm transition-colors',
                   sortBy === opt.value
-                    ? 'text-[#818cf8] bg-[#1e1b4b]'
-                    : 'text-[#a3a3a3] hover:text-[#f5f5f5] hover:bg-[#1c1c1c]'
+                    ? 'text-[var(--lt-accent-light)] bg-[var(--lt-accent-muted)]'
+                    : 'text-[var(--lt-text-muted)] hover:text-[var(--lt-text-primary)] hover:bg-[var(--lt-card-hover)]'
                 )}
               >
                 {opt.label}
@@ -82,14 +82,14 @@ export default function Toolbar({
         </div>
 
         {/* View toggle */}
-        <div className="flex items-center bg-[#1c1c1c] border border-[#333333] rounded-[8px] p-0.5">
+        <div className="flex items-center bg-[var(--lt-card-hover)] border border-[var(--lt-divider-light)] rounded-[8px] p-0.5">
           <button
             onClick={() => onViewChange('grid')}
             className={cn(
               'p-1.5 rounded-[6px] transition-all',
               view === 'grid'
-                ? 'bg-[#4f46e5] text-white'
-                : 'text-[#6b7280] hover:text-[#f5f5f5]'
+                ? 'bg-[var(--lt-accent)] text-white'
+                : 'text-[var(--lt-text-subtle)] hover:text-[var(--lt-text-primary)]'
             )}
             title="Grid view"
           >
@@ -100,8 +100,8 @@ export default function Toolbar({
             className={cn(
               'p-1.5 rounded-[6px] transition-all',
               view === 'list'
-                ? 'bg-[#4f46e5] text-white'
-                : 'text-[#6b7280] hover:text-[#f5f5f5]'
+                ? 'bg-[var(--lt-accent)] text-white'
+                : 'text-[var(--lt-text-subtle)] hover:text-[var(--lt-text-primary)]'
             )}
             title="List view"
           >
