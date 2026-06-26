@@ -18,7 +18,7 @@ const TABS = [
   { id: 'company',      label: 'Company',      icon: Building2 },
   { id: 'users',        label: 'Users',         icon: Users     },
   { id: 'theme',        label: 'Theme',         icon: Palette   },
-  { id: 'subscription', label: 'Subscription',  icon: Crown     },
+  // { id: 'subscription', label: 'Subscription',  icon: Crown     },
 ]
 
 function Section({ title, action, children }) {
@@ -52,6 +52,7 @@ export default function LocalModeSettings() {
   useEffect(() => { refresh() }, [refresh])
 
   return (
+    <div className="h-full overflow-y-auto">
     <div className="max-w-3xl mx-auto px-4 py-8">
 
       {/* ── Page header ── */}
@@ -194,6 +195,7 @@ export default function LocalModeSettings() {
         )}
 
       </div>
+    </div>
     </div>
   )
 }

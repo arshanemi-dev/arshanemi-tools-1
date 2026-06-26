@@ -35,7 +35,7 @@
 /* ── Runtime theme CSS vars (overridden by ThemeContext at runtime) ──── */
 :root {
   --si-font-scale:    1;
-  --font-sans:        var(--font-inter), ui-sans-serif, system-ui, sans-serif;
+  --font-sans:        -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", "Helvetica Neue", Arial, sans-serif;
 
   /* Dynamic accent — overridden at runtime by ThemeContext */
   --lt-accent:        #4f46e5;
@@ -53,6 +53,11 @@
   --lt-text-primary:  #f5f5f5;
   --lt-text-muted:    #a3a3a3;
   --lt-text-subtle:   #6b7280;
+
+  /* Danger semantic — adapts per theme */
+  --lt-danger-bg:     #450a0a;
+  --lt-danger-text:   #ef4444;
+  --lt-danger-hover:  #6b1212;
 }
 
 /* Light-mode overrides — applied when ThemeContext sets data-theme="light" */
@@ -67,6 +72,11 @@
   --lt-text-muted:    #475569;
   --lt-text-subtle:   #94a3b8;
   --lt-accent-muted:  #e0e7ff;
+
+  /* Danger semantic — light mode: soft red tint */
+  --lt-danger-bg:     #fef2f2;
+  --lt-danger-text:   #dc2626;
+  --lt-danger-hover:  #fee2e2;
 }
 
 /* ── Base ─────────────────────────────────────────────────────────────── */
@@ -91,14 +101,19 @@ body {
   transition: background-color 0.2s ease, color 0.2s ease;
 }
 
+/* ── Icon scale — Lucide icons scale proportionally with font-scale ─────── */
+svg.lucide {
+  zoom: var(--si-font-scale, 1);
+}
+
 /* ── Scrollbar ─────────────────────────────────────────────────────────── */
 ::-webkit-scrollbar {
   width: 6px;
   height: 6px;
 }
-::-webkit-scrollbar-track { background: #111111; }
-::-webkit-scrollbar-thumb { background: #333333; border-radius: 3px; }
-::-webkit-scrollbar-thumb:hover { background: #4f46e5; }
+::-webkit-scrollbar-track { background: var(--lt-surface); }
+::-webkit-scrollbar-thumb { background: var(--lt-divider-light); border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: var(--lt-accent); }
 
 /* ── Utility classes ──────────────────────────────────────────────────── */
 .gradient-text {

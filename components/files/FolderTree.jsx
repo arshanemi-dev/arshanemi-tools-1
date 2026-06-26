@@ -752,7 +752,7 @@ export default function FolderTree({
             className={cn(
               'flex items-center gap-1 h-6 px-1.5 rounded-[6px] transition-colors text-[10px] font-semibold shrink-0',
               checkedFolders.size > 0
-                ? 'bg-[#450a0a] text-[#ef4444] hover:bg-[#6b1212] cursor-pointer'
+                ? 'bg-[var(--lt-danger-bg)] text-[var(--lt-danger-text)] hover:bg-[var(--lt-danger-hover)] cursor-pointer'
                 : 'bg-[var(--lt-surface)] border border-[var(--lt-divider)] text-[var(--lt-text-subtle)] cursor-not-allowed'
             )}
           >

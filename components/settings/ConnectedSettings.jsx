@@ -104,6 +104,7 @@ export default function ConnectedSettings() {
   const apiBase = process.env.NEXT_PUBLIC_ADMIN_API_URL
 
   return (
+    <div className="h-full overflow-y-auto">
     <div className="max-w-3xl mx-auto px-4 py-8">
 
       {/* Header */}
@@ -270,6 +271,7 @@ export default function ConnectedSettings() {
           </div>
         ))}
       </div>
+    </div>
     </div>
   )
 }

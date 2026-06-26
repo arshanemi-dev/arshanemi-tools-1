@@ -224,9 +224,9 @@ function RightToolbar({
         className={cn(
           'flex items-center gap-1.5 px-2.5 h-8 text-xs rounded-[8px] font-medium transition-all shrink-0',
           deleting
-            ? 'bg-[#450a0a] text-[#ef4444] opacity-70 cursor-not-allowed'
+            ? 'bg-[var(--lt-danger-bg)] text-[var(--lt-danger-text)] opacity-70 cursor-not-allowed'
             : hasSelection
-            ? 'bg-[#450a0a] text-[#ef4444] hover:bg-[#6b1212]'
+            ? 'bg-[var(--lt-danger-bg)] text-[var(--lt-danger-text)] hover:bg-[var(--lt-danger-hover)]'
             : 'bg-[var(--lt-surface)] border border-[var(--lt-divider)] text-[var(--lt-divider-light)] cursor-not-allowed'
         )}
       >
