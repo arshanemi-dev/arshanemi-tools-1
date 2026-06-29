@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useRef, useCallback, useEffect } from 'react'
-import { Upload, X, CheckCircle, AlertCircle, Image, Video, AlertTriangle, Folder } from 'lucide-react'
+import { Upload, X, CheckCircle, AlertCircle, Image, Video, AlertTriangle, Folder, RefreshCw } from 'lucide-react'
 import Modal       from '@/components/ui/Modal'
 import Button      from '@/components/ui/Button'
 import ExpiryPicker from '@/components/ui/ExpiryPicker'
@@ -94,6 +94,8 @@ function UploadItem({ entry }) {
     ? 'text-[#10b981]'
     : entry.status === 'error'
     ? 'text-[#ef4444]'
+    : entry.status === 'retrying'
+    ? 'text-[#f59e0b]'
     : 'text-[var(--lt-accent-light)]'
 
   return (
@@ -113,13 +115,22 @@ function UploadItem({ entry }) {
         </div>
         <p className="text-xs text-[var(--lt-text-subtle)]">{formatBytes(entry.file.size)}</p>
 
-        {(entry.status === 'uploading' || entry.status === 'pending') && (
+        {(entry.status === 'uploading' || entry.status === 'pending' || entry.status === 'retrying') && (
           <div className="mt-1.5 h-1.5 bg-[var(--lt-card-hover)] rounded-full overflow-hidden">
             <div
-              className="h-full bg-[var(--lt-accent)] transition-all duration-300 rounded-full"
+              className={cn(
+                'h-full transition-all duration-300 rounded-full',
+                entry.status === 'retrying' ? 'bg-[#f59e0b]' : 'bg-[var(--lt-accent)]'
+              )}
               style={{ width: `${entry.progress}%` }}
             />
           </div>
+        )}
+
+        {entry.status === 'retrying' && (
+          <p className="text-[11px] text-[#f59e0b] mt-0.5">
+            Retrying… ({entry.attempt}/{entry.maxAttempts})
+          </p>
         )}
 
         {entry.status === 'error' && (
@@ -128,8 +139,9 @@ function UploadItem({ entry }) {
       </div>
 
       <div className={cn('shrink-0', statusColor)}>
-        {entry.status === 'done'    && <CheckCircle size={16} />}
-        {entry.status === 'error'   && <AlertCircle size={16} />}
+        {entry.status === 'done'     && <CheckCircle size={16} />}
+        {entry.status === 'error'    && <AlertCircle size={16} />}
+        {entry.status === 'retrying' && <RefreshCw size={14} className="animate-spin" />}
         {(entry.status === 'uploading' || entry.status === 'pending') && (
           <span className="text-xs font-medium">{entry.progress}%</span>
         )}

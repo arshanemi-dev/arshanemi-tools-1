@@ -2,68 +2,99 @@
 
 import { useState, useCallback } from 'react'
 
+const MAX_ATTEMPTS = 3
+
+const delay = (ms) => new Promise(r => setTimeout(r, ms))
+
 export function useUpload({ currentPath, refetch, toast }) {
-  const [uploads,   setUploads]   = useState([]) // [{ id, file, progress, status, error }]
+  const [uploads,   setUploads]   = useState([]) // [{ id, file, progress, status, error, attempt, maxAttempts }]
   const [uploading, setUploading] = useState(false)
 
   const uploadFiles = useCallback(async (files) => {
     if (!files?.length) return
 
     const entries = Array.from(files).map(file => ({
-      id:       `${Date.now()}-${Math.random()}`,
+      id:          `${Date.now()}-${Math.random()}`,
       file,
-      progress: 0,
-      status:   'uploading',
-      error:    null,
+      progress:    0,
+      status:      'uploading',
+      error:       null,
+      attempt:     1,
+      maxAttempts: MAX_ATTEMPTS,
     }))
 
     setUploads(entries)
     setUploading(true)
 
-    // Launch all uploads in parallel — each file gets its own XHR so
-    // per-file progress is tracked individually and one failure doesn't
-    // cancel the others.
+    // Each file gets its own XHR with retry logic — parallel uploads, independent failures.
     const results = await Promise.all(
       entries.map(entry => new Promise((resolve) => {
-        const formData = new FormData()
-        formData.append('folderPath', currentPath || '')
-        formData.append('files', entry.file)
+        let attempt = 0
 
-        const xhr = new XMLHttpRequest()
-        xhr.open('POST', '/api/upload')
+        function tryUpload() {
+          attempt++
 
-        xhr.upload.onprogress = (ev) => {
-          if (!ev.lengthComputable) return
-          const pct = Math.round((ev.loaded / ev.total) * 100)
-          setUploads(prev => prev.map(u =>
-            u.id === entry.id ? { ...u, progress: pct } : u
-          ))
-        }
-
-        xhr.onload = () => {
-          if (xhr.status === 200) {
+          if (attempt > 1) {
             setUploads(prev => prev.map(u =>
-              u.id === entry.id ? { ...u, progress: 100, status: 'done' } : u
+              u.id === entry.id
+                ? { ...u, status: 'retrying', attempt, progress: 0, error: null }
+                : u
             ))
-            resolve(true)
-          } else {
+          }
+
+          const formData = new FormData()
+          formData.append('folderPath', currentPath || '')
+          formData.append('files', entry.file)
+
+          const xhr = new XMLHttpRequest()
+          xhr.open('POST', '/api/upload')
+
+          xhr.upload.onprogress = (ev) => {
+            if (!ev.lengthComputable) return
+            const pct = Math.round((ev.loaded / ev.total) * 100)
+            setUploads(prev => prev.map(u =>
+              u.id === entry.id ? { ...u, progress: pct } : u
+            ))
+          }
+
+          xhr.onload = () => {
+            if (xhr.status === 200) {
+              setUploads(prev => prev.map(u =>
+                u.id === entry.id ? { ...u, progress: 100, status: 'done' } : u
+              ))
+              resolve(true)
+              return
+            }
+
             let errorMsg = 'Upload failed'
             try { errorMsg = JSON.parse(xhr.responseText)?.error ?? errorMsg } catch {}
-            setUploads(prev => prev.map(u =>
-              u.id === entry.id ? { ...u, status: 'error', error: errorMsg } : u
-            ))
-            resolve(false)
+
+            // Retry on server errors (5xx); don't retry 400/401/403/404 — those are permanent.
+            if (attempt < MAX_ATTEMPTS && (xhr.status === 0 || xhr.status >= 500)) {
+              delay(800 * 2 ** (attempt - 1) + Math.random() * 400).then(tryUpload)
+            } else {
+              setUploads(prev => prev.map(u =>
+                u.id === entry.id ? { ...u, status: 'error', error: errorMsg } : u
+              ))
+              resolve(false)
+            }
           }
+
+          xhr.onerror = () => {
+            if (attempt < MAX_ATTEMPTS) {
+              delay(800 * 2 ** (attempt - 1) + Math.random() * 400).then(tryUpload)
+            } else {
+              setUploads(prev => prev.map(u =>
+                u.id === entry.id ? { ...u, status: 'error', error: 'Network error' } : u
+              ))
+              resolve(false)
+            }
+          }
+
+          xhr.send(formData)
         }
 
-        xhr.onerror = () => {
-          setUploads(prev => prev.map(u =>
-            u.id === entry.id ? { ...u, status: 'error', error: 'Network error' } : u
-          ))
-          resolve(false)
-        }
-
-        xhr.send(formData)
+        tryUpload()
       }))
     )
 
