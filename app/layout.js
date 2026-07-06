@@ -1,10 +1,9 @@
 import { Inter } from 'next/font/google'
 import './globals.css'
-import Header from '@/components/layout/Header'
+import AppShell from '@/components/layout/AppShell'
 import { ToastProvider } from '@/components/layout/ToastProvider'
 import { SelectedFilesProvider } from '@/context/SelectedFilesContext'
 import { ThemeProvider } from '@/context/ThemeContext'
-import LoginModal from '@/components/ui/LoginModal'
 
 const inter = Inter({ subsets: ['latin'], variable: '--font-inter' })
 
@@ -20,11 +19,9 @@ export default function RootLayout({ children }) {
         <ThemeProvider>
           <ToastProvider>
             <SelectedFilesProvider>
-              <Header />
-              <main className="flex-1 overflow-hidden" style={{ backgroundColor: 'var(--lt-bg-base)' }}>
+              <AppShell>
                 {children}
-              </main>
-              <LoginModal />
+              </AppShell>
             </SelectedFilesProvider>
           </ToastProvider>
         </ThemeProvider>

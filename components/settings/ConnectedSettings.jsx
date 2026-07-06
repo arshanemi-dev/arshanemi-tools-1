@@ -1,277 +1,261 @@
 'use client'
 
-import { useState, useEffect, useCallback } from 'react'
-import { LogOut, User, CreditCard, RefreshCw, Wifi, Palette } from 'lucide-react'
-import { isLoggedIn, clearAuthTokens } from '@/lib/tokenStore'
-import { fetchUser, fetchSubscription, DUMMY_USER, DUMMY_SUBSCRIPTION } from '@/lib/adminData'
-import { useTheme } from '@/context/ThemeContext'
-import LoginForm        from '@/components/settings/LoginForm'
-import SubscriptionCard from '@/components/settings/SubscriptionCard'
-import Spinner from '@/components/ui/Spinner'
-import Button  from '@/components/ui/Button'
+import { useState, useEffect } from 'react'
+import {
+  User, Mail, Shield, Calendar, Crown, Palette,
+  CheckCircle, XCircle, Clock, AlertTriangle,
+  Moon, Sun, Type, Sliders,
+} from 'lucide-react'
 import { cn } from '@/lib/utils'
+import { getStoredUser } from '@/lib/tokenStore'
+import { fetchSubscription, DUMMY_SUBSCRIPTION } from '@/lib/adminData'
+import { useTheme } from '@/context/ThemeContext'
 
-const TABS = [
-  { id: 'account',      label: 'Account',      icon: User       },
-  { id: 'subscription', label: 'Subscription',  icon: CreditCard },
-  { id: 'theme',        label: 'Theme',         icon: Palette    },
-]
+// ── Status badge ──────────────────────────────────────────────────────────────
 
-function Section({ title, children }) {
+const STATUS_CONFIG = {
+  active:    { label: 'Active',    icon: CheckCircle,    cls: 'text-[#10b981] bg-[#064e3b] border-[#10b981]/30' },
+  inactive:  { label: 'Inactive',  icon: XCircle,        cls: 'text-[var(--lt-text-subtle)] bg-[var(--lt-card)] border-[var(--lt-divider)]' },
+  past_due:  { label: 'Past Due',  icon: AlertTriangle,  cls: 'text-[#f59e0b] bg-[#451a03] border-[#f59e0b]/30' },
+  cancelled: { label: 'Cancelled', icon: XCircle,        cls: 'text-[#ef4444] bg-[#450a0a] border-[#ef4444]/30' },
+  trialing:  { label: 'Trial',     icon: Clock,          cls: 'text-[var(--lt-accent-light)] bg-[var(--lt-accent-muted)] border-[var(--lt-accent)]/30' },
+}
+
+function StatusBadge({ status }) {
+  const cfg  = STATUS_CONFIG[status] ?? STATUS_CONFIG.inactive
+  const Icon = cfg.icon
+  return (
+    <span className={cn('inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-bold border uppercase tracking-wider', cfg.cls)}>
+      <Icon size={10} />
+      {cfg.label}
+    </span>
+  )
+}
+
+// ── Section wrapper ───────────────────────────────────────────────────────────
+
+function Section({ title, icon: Icon, children }) {
   return (
     <div className="flex flex-col gap-4">
-      <h3 className="text-sm font-bold text-[var(--lt-text-primary)] border-b border-[var(--lt-divider)] pb-2.5">{title}</h3>
+      <div className="flex items-center gap-2 border-b border-[var(--lt-divider)] pb-2.5">
+        <Icon size={15} className="text-[var(--lt-accent)]" />
+        <h3 className="text-sm font-bold text-[var(--lt-text-primary)]">{title}</h3>
+      </div>
       {children}
     </div>
   )
 }
 
-function UserCard({ user }) {
+// ── Meta row ──────────────────────────────────────────────────────────────────
+
+function MetaRow({ icon: Icon, label, children }) {
   return (
-    <div className="flex items-center gap-4 p-5 bg-[var(--lt-card)] border border-[var(--lt-divider)] rounded-[12px]">
-      <div className="w-14 h-14 rounded-full bg-[var(--lt-accent-muted)] border-2 border-[var(--lt-accent)]/30 flex items-center justify-center text-xl font-bold text-[var(--lt-accent-light)] shrink-0">
-        {user.name?.[0]?.toUpperCase() ?? 'U'}
-      </div>
-      <div className="flex-1 min-w-0">
-        <div className="flex items-center gap-2 flex-wrap">
-          <p className="font-bold text-[var(--lt-text-primary)] truncate">{user.name}</p>
-          <span className="px-2 py-0.5 rounded-full bg-[var(--lt-accent-muted)] text-[var(--lt-accent-light)] text-[9px] font-bold border border-[var(--lt-accent)]/30 uppercase">
-            {user.role}
-          </span>
-        </div>
-        <p className="text-sm text-[var(--lt-text-muted)] mt-0.5 truncate">{user.email}</p>
-        {user.mobile && <p className="text-xs text-[var(--lt-text-subtle)] mt-0.5">{user.mobile}</p>}
-      </div>
+    <div className="flex items-center gap-3 py-2.5 border-b border-[var(--lt-divider)] last:border-0">
+      <Icon size={13} className="text-[var(--lt-text-subtle)] shrink-0" />
+      <span className="text-xs text-[var(--lt-text-subtle)] w-28 shrink-0">{label}</span>
+      <span className="text-xs text-[var(--lt-text-primary)] font-medium flex-1">{children}</span>
     </div>
   )
 }
 
-function InfoRow({ label, value }) {
-  return (
-    <div className="flex items-center gap-3 py-2.5 border-b border-[var(--lt-divider)] last:border-0">
-      <span className="text-xs text-[var(--lt-text-subtle)] w-28 shrink-0">{label}</span>
-      <span className="text-sm text-[var(--lt-text-primary)] flex-1 truncate font-medium">{value ?? '—'}</span>
-    </div>
-  )
-}
+// ── Main ──────────────────────────────────────────────────────────────────────
 
 export default function ConnectedSettings() {
   const { theme } = useTheme()
-  const [tab,          setTab]          = useState('account')
-  const [loggedIn,     setLoggedIn]     = useState(false)
-  const [user,         setUser]         = useState(null)
+  const [authUser,     setAuthUser]     = useState(null)
   const [subscription, setSubscription] = useState(null)
-  const [loading,      setLoading]      = useState(true)
-  const [toasts,       setToasts]       = useState([])
-
-  const toast = useCallback((message, type = 'info') => {
-    const id = Date.now()
-    setToasts(prev => [...prev, { id, message, type }])
-    setTimeout(() => setToasts(prev => prev.filter(t => t.id !== id)), 3500)
-  }, [])
-
-  const loadData = useCallback(async () => {
-    setLoading(true)
-    const li = isLoggedIn()
-    setLoggedIn(li)
-    if (li) {
-      const [u, sub] = await Promise.all([fetchUser(), fetchSubscription()])
-      setUser(u)
-      setSubscription(sub)
-    } else {
-      setUser(DUMMY_USER)
-      setSubscription(DUMMY_SUBSCRIPTION)
-    }
-    setLoading(false)
-  }, [])
-
-  useEffect(() => { loadData() }, [loadData])
+  const [subLoading,   setSubLoading]   = useState(true)
+  const [subError,     setSubError]     = useState('')
 
   useEffect(() => {
-    const onSuccess = () => loadData()
-    window.addEventListener('auth:success', onSuccess)
-    return () => window.removeEventListener('auth:success', onSuccess)
-  }, [loadData])
+    setAuthUser(getStoredUser())
 
-  function handleLogout() {
-    clearAuthTokens()
-    setLoggedIn(false)
-    setUser(DUMMY_USER)
-    setSubscription(DUMMY_SUBSCRIPTION)
-    toast('Logged out', 'info')
-  }
+    fetchSubscription()
+      .then(data => {
+        if (!data || data === DUMMY_SUBSCRIPTION) {
+          setSubError('Could not load subscription')
+        } else {
+          setSubscription(data)
+        }
+      })
+      .catch(() => setSubError('Could not load subscription'))
+      .finally(() => setSubLoading(false))
+  }, [])
 
-  const apiBase = process.env.NEXT_PUBLIC_ADMIN_API_URL
+  const roleLabel = authUser?.role
+    ? authUser.role.charAt(0).toUpperCase() + authUser.role.slice(1)
+    : '—'
+
+  const periodEnd = subscription?.currentPeriodEnd
+    ? new Date(subscription.currentPeriodEnd).toLocaleDateString('en-IN', {
+        day: 'numeric', month: 'long', year: 'numeric',
+      })
+    : null
+
+  const currentMode   = theme?.mode ?? 'dark'
+  const currentColors = theme?.[currentMode] ?? {}
 
   return (
     <div className="h-full overflow-y-auto">
-    <div className="max-w-3xl mx-auto px-4 py-8">
+      <div className="max-w-xl mx-auto px-4 py-8 flex flex-col gap-8">
 
-      {/* Header */}
-      <div className="flex items-start justify-between mb-7">
+        {/* Page title */}
         <div>
-          <div className="flex items-center gap-2.5 mb-1">
-            <h1 className="text-[22px] font-bold text-[var(--lt-text-primary)] tracking-tight">Settings</h1>
-            <span className={cn(
-              'flex items-center gap-1.5 text-[9px] font-bold tracking-widest uppercase px-2.5 py-1 rounded-full',
-              loggedIn
-                ? 'text-[#10b981] bg-[#064e3b]/50 border border-[#10b981]/25'
-                : 'text-[var(--lt-text-subtle)] bg-[var(--lt-card-hover)] border border-[var(--lt-divider-light)]'
-            )}>
-              <Wifi size={8} />
-              {loggedIn ? 'Connected' : 'Not signed in'}
-            </span>
-          </div>
-          <p className="text-sm text-[var(--lt-text-subtle)]">
-            {loggedIn ? 'Manage your account and subscription' : 'Sign in to sync with admin panel'}
-          </p>
+          <h1 className="text-[22px] font-bold text-[var(--lt-text-primary)] tracking-tight">Settings</h1>
+          <p className="text-sm text-[var(--lt-text-subtle)] mt-1">Connected mode — managed by admin panel</p>
         </div>
-        <div className="flex items-center gap-2">
-          <Button size="sm" variant="ghost" icon={<RefreshCw size={12} />} onClick={loadData} disabled={loading}>
-            Refresh
-          </Button>
-          {loggedIn && (
-            <Button size="sm" variant="ghost" icon={<LogOut size={12} />} onClick={handleLogout} className="text-[#ef4444] hover:bg-[#2a0a0a]">
-              Sign out
-            </Button>
+
+        {/* ── Current User ── */}
+        <Section title="Current User" icon={User}>
+          {!authUser ? (
+            <p className="text-xs text-[var(--lt-text-subtle)] italic">No user data available.</p>
+          ) : (
+            <div className="bg-[var(--lt-card)] border border-[var(--lt-divider)] rounded-[12px] overflow-hidden">
+              {/* Avatar bar */}
+              <div className="flex items-center gap-4 p-4 bg-[var(--lt-accent-muted)] border-b border-[var(--lt-divider)]">
+                <div className="w-12 h-12 rounded-full bg-[var(--lt-accent)] flex items-center justify-center text-lg font-bold text-white shrink-0">
+                  {(authUser.name?.[0] ?? authUser.email?.[0] ?? '?').toUpperCase()}
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-bold text-[var(--lt-text-primary)] truncate">{authUser.name || '—'}</p>
+                  <p className="text-xs text-[var(--lt-text-muted)] truncate mt-0.5">{authUser.email || '—'}</p>
+                </div>
+                <span className={cn(
+                  'px-2 py-1 rounded-full text-[9px] font-bold border uppercase tracking-wider shrink-0',
+                  authUser.role === 'admin'
+                    ? 'text-[var(--lt-accent-light)] bg-[var(--lt-accent-muted)] border-[var(--lt-accent)]/30'
+                    : 'text-[#10b981] bg-[#064e3b] border-[#10b981]/30'
+                )}>
+                  {authUser.role ?? 'user'}
+                </span>
+              </div>
+
+              {/* Meta rows */}
+              <div className="px-4">
+                <MetaRow icon={Mail}   label="Email">{authUser.email || '—'}</MetaRow>
+                <MetaRow icon={Shield} label="Role">{roleLabel}</MetaRow>
+                {authUser.id && (
+                  <MetaRow icon={User} label="User ID">
+                    <span className="font-mono text-[var(--lt-text-subtle)]">{authUser.id}</span>
+                  </MetaRow>
+                )}
+              </div>
+            </div>
           )}
-        </div>
-      </div>
+        </Section>
 
-      {/* Tab bar */}
-      <div className="flex gap-1 p-1 bg-[var(--lt-bg-base)] border border-[var(--lt-divider)] rounded-[12px] mb-7">
-        {TABS.map(t => {
-          const Icon = t.icon
-          return (
-            <button
-              key={t.id}
-              onClick={() => setTab(t.id)}
-              className={cn(
-                'flex-1 flex items-center justify-center gap-2 py-2.5 rounded-[9px] text-xs font-semibold transition-all',
-                tab === t.id
-                  ? 'bg-[var(--lt-accent)] text-white shadow-sm'
-                  : 'text-[var(--lt-text-subtle)] hover:text-[var(--lt-text-muted)] hover:bg-[var(--lt-card)]'
-              )}
-            >
-              <Icon size={13} />
-              {t.label}
-            </button>
-          )
-        })}
-      </div>
-
-      {loading ? (
-        <div className="flex items-center justify-center py-24">
-          <Spinner size="lg" />
-        </div>
-      ) : (
-        <div className="flex flex-col gap-6">
-
-          {/* Account */}
-          {tab === 'account' && (
-            <>
-              {!loggedIn && (
-                <Section title="Sign in to Admin Panel">
-                  <LoginForm onSuccess={(u) => { setUser(u); setLoggedIn(true); loadData() }} />
-                </Section>
-              )}
-
-              {loggedIn && user && (
-                <Section title="Profile">
-                  <UserCard user={user} />
-                  <div className="bg-[var(--lt-card)] border border-[var(--lt-divider)] rounded-[12px] px-4 py-1">
-                    <InfoRow label="User ID"      value={user.id} />
-                    <InfoRow label="Company"      value={user.company} />
-                    <InfoRow label="Member since" value={user.createdAt ? new Date(user.createdAt).toLocaleDateString('en-IN') : null} />
-                    <InfoRow label="Status"       value={user.is_active ? 'Active' : 'Inactive'} />
+        {/* ── Current Plan ── */}
+        <Section title="Current Plan" icon={Crown}>
+          {subLoading ? (
+            <div className="flex items-center gap-2 py-6 text-xs text-[var(--lt-text-subtle)]">
+              <div className="w-3.5 h-3.5 border-2 border-[var(--lt-divider-light)] border-t-[var(--lt-accent)] rounded-full animate-spin" />
+              Loading plan…
+            </div>
+          ) : subError ? (
+            <p className="text-xs text-[#ef4444] bg-[#450a0a] border border-[#ef4444]/30 rounded-[8px] px-3 py-2.5">
+              {subError}
+            </p>
+          ) : !subscription ? (
+            <p className="text-xs text-[var(--lt-text-subtle)] italic">No subscription data.</p>
+          ) : (
+            <div className="bg-[var(--lt-card)] border border-[var(--lt-divider)] rounded-[12px] overflow-hidden">
+              {/* Plan header */}
+              <div className="flex items-center justify-between p-4 bg-[var(--lt-accent-muted)] border-b border-[var(--lt-divider)]">
+                <div className="flex items-center gap-3">
+                  <div className="w-9 h-9 rounded-[8px] bg-[var(--lt-accent)]/20 border border-[var(--lt-accent)]/30 flex items-center justify-center">
+                    <Crown size={16} className="text-[var(--lt-accent-light)]" />
                   </div>
-                </Section>
-              )}
-
-              <Section title="Admin API">
-                <div className="bg-[var(--lt-card)] border border-[var(--lt-divider)] rounded-[12px] px-4 py-1">
-                  <InfoRow label="API URL" value={apiBase || 'Not configured'} />
-                  <InfoRow label="Status"  value={loggedIn ? 'Connected' : apiBase ? 'Not signed in' : 'Not configured'} />
+                  <div>
+                    <p className="text-sm font-bold text-[var(--lt-text-primary)]">
+                      {subscription.plan ?? 'Free'}
+                    </p>
+                    {subscription.planDetails?.price != null && (
+                      <p className="text-xs text-[var(--lt-text-subtle)] mt-0.5">
+                        ₹{subscription.planDetails.price} / {subscription.planDetails.interval ?? 'month'}
+                      </p>
+                    )}
+                  </div>
                 </div>
-              </Section>
-            </>
-          )}
+                <StatusBadge status={subscription.status ?? 'inactive'} />
+              </div>
 
-          {/* Subscription */}
-          {tab === 'subscription' && (
-            <Section title="Your Subscription">
-              {!loggedIn && (
-                <p className="text-xs text-[var(--lt-text-subtle)] bg-[var(--lt-bg-base)] border border-[var(--lt-divider)] rounded-[8px] px-3 py-2 mb-1">
-                  Sign in on the Account tab to view your subscription.
-                </p>
-              )}
-              <SubscriptionCard subscription={subscription} />
-            </Section>
-          )}
-
-          {/* Theme */}
-          {tab === 'theme' && (
-            <Section title="Theme">
-              <div className="flex flex-col gap-4">
-                <div className="flex items-start gap-2.5 p-3 bg-[var(--lt-accent-muted)] border border-[var(--lt-accent)]/20 rounded-[10px]">
-                  <Wifi size={13} className="text-[var(--lt-accent-light)] mt-0.5 shrink-0" />
-                  <p className="text-xs text-[var(--lt-text-muted)] leading-relaxed">
-                    Theme is synced from the admin panel. Font family, font scale, accent colors and
-                    dark / light mode are all controlled by the admin theme settings.
-                  </p>
-                </div>
-
-                {theme && (
-                  <div className="bg-[var(--lt-card)] border border-[var(--lt-divider)] rounded-[12px] divide-y divide-[var(--lt-divider)]">
-                    {[
-                      { label: 'Mode',        value: theme.mode       || 'dark'  },
-                      { label: 'Font family',  value: theme.fontFamily || 'Inter' },
-                      { label: 'Font scale',   value: `${((theme.fontScale ?? 1) * 100).toFixed(0)}%` },
-                      { label: 'Accent',       value: theme[theme.mode || 'dark']?.accent || '—', isColor: true },
-                    ].map(({ label, value, isColor }) => (
-                      <div key={label} className="flex items-center gap-3 px-4 py-2.5">
-                        <span className="text-xs text-[var(--lt-text-subtle)] w-28 shrink-0">{label}</span>
-                        <div className="flex items-center gap-2">
-                          {isColor && (
-                            <span
-                              className="inline-block w-3.5 h-3.5 rounded-full border border-[#ffffff15]"
-                              style={{ backgroundColor: value }}
-                            />
-                          )}
-                          <span className="text-sm text-[var(--lt-text-primary)] font-medium capitalize">{value}</span>
-                        </div>
+              {/* Plan details */}
+              <div className="px-4">
+                {periodEnd && (
+                  <MetaRow icon={Calendar} label="Renews on">{periodEnd}</MetaRow>
+                )}
+                {subscription.cancelAtPeriodEnd && (
+                  <MetaRow icon={AlertTriangle} label="Notice">
+                    <span className="text-[#f59e0b]">Cancels at period end</span>
+                  </MetaRow>
+                )}
+                {subscription.planDetails?.features?.length > 0 && (
+                  <div className="py-3 flex flex-col gap-2">
+                    {subscription.planDetails.features.map((f, i) => (
+                      <div key={i} className="flex items-center gap-2 text-xs text-[var(--lt-text-muted)]">
+                        <CheckCircle size={11} className="text-[#10b981] shrink-0" />
+                        {f}
                       </div>
                     ))}
                   </div>
                 )}
-
-                <p className="text-[10px] text-[var(--lt-text-subtle)] leading-relaxed">
-                  To change the theme, update it in the admin panel → Theme Settings.
-                  Changes are cached for 10 minutes.
-                </p>
               </div>
-            </Section>
+            </div>
           )}
+        </Section>
 
-        </div>
-      )}
+        {/* ── Theme & Appearance ── */}
+        <Section title="Theme & Appearance" icon={Palette}>
+          <div className="bg-[var(--lt-card)] border border-[var(--lt-divider)] rounded-[12px] px-4">
 
-      {/* Toast stack */}
-      <div className="fixed bottom-5 right-5 z-[9999] flex flex-col gap-2 pointer-events-none">
-        {toasts.map(t => (
-          <div
-            key={t.id}
-            className={`px-4 py-2.5 rounded-[8px] text-sm font-medium shadow-xl pointer-events-auto animate-slideUp ${
-              t.type === 'success' ? 'bg-[#064e3b] text-[#10b981] border border-[#10b981]/30' :
-              t.type === 'error'   ? 'bg-[#450a0a] text-[#ef4444] border border-[#ef4444]/30' :
-              'bg-[var(--lt-accent-muted)] text-[var(--lt-accent-light)] border border-[var(--lt-accent)]/30'
-            }`}
-          >
-            {t.message}
+            {/* Color mode */}
+            <div className="flex items-center gap-3 py-3 border-b border-[var(--lt-divider)]">
+              {currentMode === 'dark'
+                ? <Moon size={13} className="text-[var(--lt-text-subtle)] shrink-0" />
+                : <Sun  size={13} className="text-[var(--lt-text-subtle)] shrink-0" />}
+              <span className="text-xs text-[var(--lt-text-subtle)] w-28 shrink-0">Color Mode</span>
+              <span className="text-xs font-medium text-[var(--lt-text-primary)] capitalize">
+                {currentMode}
+              </span>
+            </div>
+
+            {/* Accent color */}
+            <div className="flex items-center gap-3 py-3 border-b border-[var(--lt-divider)]">
+              <div
+                className="w-3.5 h-3.5 rounded-full shrink-0"
+                style={{ backgroundColor: currentColors.accent ?? 'var(--lt-accent)' }}
+              />
+              <span className="text-xs text-[var(--lt-text-subtle)] w-28 shrink-0">Accent Colour</span>
+              <span className="text-xs font-medium text-[var(--lt-text-primary)] font-mono">
+                {currentColors.accent ?? '—'}
+              </span>
+            </div>
+
+            {/* Font family */}
+            <div className="flex items-center gap-3 py-3 border-b border-[var(--lt-divider)]">
+              <Type size={13} className="text-[var(--lt-text-subtle)] shrink-0" />
+              <span className="text-xs text-[var(--lt-text-subtle)] w-28 shrink-0">Font Family</span>
+              <span
+                className="text-xs font-medium text-[var(--lt-text-primary)]"
+                style={{ fontFamily: theme?.fontFamily && theme.fontFamily !== 'System' ? `'${theme.fontFamily}', sans-serif` : 'inherit' }}
+              >
+                {theme?.fontFamily ?? 'System'}
+              </span>
+            </div>
+
+            {/* Font scale */}
+            <div className="flex items-center gap-3 py-3">
+              <Sliders size={13} className="text-[var(--lt-text-subtle)] shrink-0" />
+              <span className="text-xs text-[var(--lt-text-subtle)] w-28 shrink-0">Font Scale</span>
+              <span className="text-xs font-medium text-[var(--lt-text-primary)]">
+                {((theme?.fontScale ?? 1) * 100).toFixed(0)}%
+              </span>
+            </div>
+
           </div>
-        ))}
+        </Section>
+
       </div>
-    </div>
     </div>
   )
 }

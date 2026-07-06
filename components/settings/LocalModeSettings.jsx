@@ -2,10 +2,8 @@
 
 import { useState, useEffect, useCallback } from 'react'
 import { User, Users, Palette, Crown, WifiOff, CheckCircle, Building2 } from 'lucide-react'
-import {
-  getUsers, getActiveUserId, getActiveUser,
-  getLocalSubscription, getCompanies,
-} from '@/lib/localStore'
+import { getActiveUserId, getLocalSubscription } from '@/lib/localStore'
+import { getUsers, getCompanies, getActiveUser } from '@/lib/dataStore'
 import ProfilePanel     from './local/ProfilePanel'
 import UsersPanel       from './local/UsersPanel'
 import ThemePanel       from './local/ThemePanel'
@@ -42,11 +40,12 @@ export default function LocalModeSettings() {
 
   const sub = getLocalSubscription()
 
-  const refresh = useCallback(() => {
-    setUsers(getUsers())
-    setCompanies(getCompanies())
+  const refresh = useCallback(async () => {
+    const [users, companies] = await Promise.all([getUsers(), getCompanies()])
+    setUsers(users)
+    setCompanies(companies)
     setAUID(getActiveUserId())
-    setAU(getActiveUser())
+    setAU(getActiveUser(users))
   }, [])
 
   useEffect(() => { refresh() }, [refresh])
@@ -66,7 +65,7 @@ export default function LocalModeSettings() {
             </span>
           </div>
           <p className="text-sm text-[var(--lt-text-subtle)]">
-            Offline · No admin API · Data stored in browser
+            Offline · No admin API · Data stored in JSON files
           </p>
         </div>
 
@@ -125,6 +124,7 @@ export default function LocalModeSettings() {
           <Section title="Local Companies">
             <CompanyPanel
               companies={companies}
+              allUsers={users}
               onRefresh={refresh}
             />
           </Section>

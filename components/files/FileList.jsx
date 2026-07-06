@@ -6,7 +6,7 @@
 import { useState, useMemo, useRef, useEffect, useCallback } from 'react'
 import {
   ChevronUp, ChevronDown, ChevronsUpDown,
-  Link2, Download, Pencil, Trash2, Loader2, Check, Minus,
+  Link2, Share2, Download, Pencil, Trash2, Loader2, Check, Minus,
   Folder, Clock,
   FileText, FileImage, FileVideo, FileAudio,
   File, Archive, Code, FileSpreadsheet, FileType2,
@@ -88,9 +88,10 @@ function ExpiryBadge({ expiryAt, onEdit }) {
 }
 
 /* ─── Per-row action buttons (always visible) ───────────────────── */
-function RowActions({ item, onDelete, onTriggerInlineRename, expiryRecord, onEditExpiry }) {
-  const [copyState, setCopyState] = useState('idle')  // idle | loading | done
-  const [dlState,   setDlState]   = useState('idle')
+function RowActions({ item, onDelete, onTriggerInlineRename, expiryRecord, onEditExpiry, urlFormat }) {
+  const [copyState,    setCopyState]    = useState('idle')  // idle | loading | done
+  const [dropboxState, setDropboxState] = useState('idle')  // idle | loading | done
+  const [dlState,      setDlState]      = useState('idle')
 
   const isFolder = item.tag === 'folder'
 
@@ -102,7 +103,7 @@ function RowActions({ item, onDelete, onTriggerInlineRename, expiryRecord, onEdi
       const res = await fetch('/api/files', {
         method:  'POST',
         headers: { 'Content-Type': 'application/json' },
-        body:    JSON.stringify({ action: 'get-urls', paths: [item.path] }),
+        body:    JSON.stringify({ action: 'get-urls', paths: [item.path], format: urlFormat }),
       })
       if (!res.ok) throw new Error()
       const { urls } = await res.json()
@@ -111,6 +112,26 @@ function RowActions({ item, onDelete, onTriggerInlineRename, expiryRecord, onEdi
       setTimeout(() => setCopyState('idle'), 1800)
     } catch {
       setCopyState('idle')
+    }
+  }
+
+  async function handleCopyDropbox(e) {
+    e.stopPropagation()
+    if (isFolder) return
+    setDropboxState('loading')
+    try {
+      const res = await fetch('/api/files', {
+        method:  'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body:    JSON.stringify({ action: 'get-urls', paths: [item.path], format: 'dropbox' }),
+      })
+      if (!res.ok) throw new Error()
+      const { urls } = await res.json()
+      await navigator.clipboard.writeText(urls[0])
+      setDropboxState('done')
+      setTimeout(() => setDropboxState('idle'), 1800)
+    } catch {
+      setDropboxState('idle')
     }
   }
 
@@ -154,6 +175,25 @@ function RowActions({ item, onDelete, onTriggerInlineRename, expiryRecord, onEdi
           {copyState === 'loading' ? <Loader2 size={11} className="animate-spin" />
             : copyState === 'done'  ? <Check   size={11} />
             : <Link2 size={11} />}
+        </button>
+      )}
+
+      {/* Copy Dropbox link */}
+      {!isFolder && (
+        <button
+          onClick={handleCopyDropbox}
+          disabled={dropboxState === 'loading'}
+          title="Copy Dropbox link"
+          className={cn(
+            'w-6 h-6 flex items-center justify-center rounded-[5px] transition-colors',
+            dropboxState === 'done'
+              ? 'text-[#10b981] bg-[#064e3b]'
+              : 'text-[var(--lt-text-subtle)] hover:text-[var(--lt-accent-light)] hover:bg-[var(--lt-accent-muted)]'
+          )}
+        >
+          {dropboxState === 'loading' ? <Loader2 size={11} className="animate-spin" />
+            : dropboxState === 'done'  ? <Check   size={11} />
+            : <Share2 size={11} />}
         </button>
       )}
 
@@ -250,6 +290,7 @@ export default function FileList({
   onRenamed,   // T4: called after a successful inline rename (use to refetch)
   expiryMap,   // Map<fileName, expiryRecord> — optional
   onEditExpiry, // (item) => void — open expiry modal for a file
+  urlFormat,   // 'original' | 'dropbox' — format used by the row "Copy link" button
 }) {
   // ── Column sort ───────────────────────────────────────────────────
   const [colSort, setColSort] = useState({ col: sortBy || 'name', dir: 'asc' })
@@ -428,6 +469,7 @@ export default function FileList({
                 onDelete={onDelete}
                 onCopyUrl={onCopyUrl}
                 hasRowCallbacks={hasRowCallbacks}
+                urlFormat={urlFormat}
                 expiryRecord={expiryMap?.get(item.name)}
                 onEditExpiry={onEditExpiry ? () => onEditExpiry(item) : undefined}
                 // T4: inline rename
@@ -454,6 +496,7 @@ function ListRow({
   onRowClick, onToggleItem, onNavigate, onContextMenu,
   onDelete, onCopyUrl,
   hasRowCallbacks,
+  urlFormat,
   expiryRecord, onEditExpiry,
   // T4: inline rename props
   isRenaming, inlineRenameName, inlineRenameBusy,
@@ -589,6 +632,7 @@ function ListRow({
             onTriggerInlineRename={onTriggerInlineRename}
             expiryRecord={expiryRecord}
             onEditExpiry={onEditExpiry}
+            urlFormat={urlFormat}
           />
         </td>
       )}

@@ -61,8 +61,8 @@ export async function POST(request) {
     }
 
     if (action === 'get-urls') {
-      const { paths } = body
-      const urls = await Promise.all(paths.map(p => getSharedLink(p, token)))
+      const { paths, format } = body
+      const urls = await Promise.all(paths.map(p => getSharedLink(p, token, format)))
       return NextResponse.json({ urls })
     }
 

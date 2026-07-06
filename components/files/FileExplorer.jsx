@@ -5,6 +5,7 @@
 // T3: per-row checkbox in FileList
 // Toolbar: single row — search · count · Copy Excel · Copy List · Delete · Upload
 
+import Link from 'next/link'
 import { useState, useEffect, useCallback, useMemo, useRef } from 'react'
 import {
   Search, X, RefreshCw, PanelLeftClose, PanelLeftOpen,
@@ -37,6 +38,42 @@ import Spinner             from '@/components/ui/Spinner'
 import ExpiryModal         from '@/components/ui/ExpiryModal'
 
 const GROUP_SIZES = [1, 2, 3, 4]
+
+/* ── Original / Dropbox URL format toggle switch ─────────────────── */
+function UrlFormatToggle({ format, onChange }) {
+  const isDropbox = format === 'dropbox'
+  return (
+    <div className="flex items-center gap-1.5 shrink-0">
+      <span className={cn(
+        'text-[10px] font-medium transition-colors',
+        !isDropbox ? 'text-[var(--lt-accent-light)]' : 'text-[var(--lt-text-subtle)]'
+      )}>
+        Original
+      </span>
+      <button
+        onClick={() => onChange(isDropbox ? 'original' : 'dropbox')}
+        title={`URL format: ${isDropbox ? 'Dropbox' : 'Original'} (click to switch)`}
+        className={cn(
+          'relative w-9 h-5 rounded-full transition-colors shrink-0',
+          isDropbox ? 'bg-[var(--lt-accent)]' : 'bg-[var(--lt-divider-light)]'
+        )}
+      >
+        <span
+          className={cn(
+            'absolute top-0.5 left-0.5 w-4 h-4 rounded-full bg-white shadow-sm transition-transform',
+            isDropbox && 'translate-x-4'
+          )}
+        />
+      </button>
+      <span className={cn(
+        'text-[10px] font-medium transition-colors',
+        isDropbox ? 'text-[var(--lt-accent-light)]' : 'text-[var(--lt-text-subtle)]'
+      )}>
+        Dropbox
+      </span>
+    </div>
+  )
+}
 
 /* ── T2: BFS recursive file fetcher ──────────────────────────────── */
 async function fetchAllFilesRecursive(rootPaths) {
@@ -73,6 +110,7 @@ function RightToolbar({
   onCopyList,   copyingList,
   multiSelectMode, onToggleMultiSelect,
   groupSize, onGroupSizeChange,
+  urlFormat, onUrlFormatChange,
 }) {
   const hasSelection    = selectedCount > 1
   const hasAnySelected  = selectedCount > 0
@@ -125,6 +163,9 @@ function RightToolbar({
       </button>
 
       <div className="flex-1" />
+
+      {/* URL format: Original / Dropbox */}
+      <UrlFormatToggle format={urlFormat} onChange={onUrlFormatChange} />
 
       {/* Group size selector */}
       <div className="flex items-center gap-1 shrink-0">
@@ -299,6 +340,7 @@ export default function FileExplorer({ path: pathSegments = [] }) {
   const [copyingNames, setCopyingNames] = useState(false)
   const [copyingList,  setCopyingList]  = useState(false)
   const [groupSize,    setGroupSize]    = useState(1)
+  const [urlFormat,    setUrlFormat]    = useState('original') // 'original' | 'dropbox' — default always Original
 
   // T2: recursive file-listing state
   const [rightFiles,   setRightFiles]   = useState([])
@@ -565,7 +607,7 @@ export default function FileExplorer({ path: pathSegments = [] }) {
       const res = await fetch('/api/files', {
         method:  'POST',
         headers: { 'Content-Type': 'application/json' },
-        body:    JSON.stringify({ action: 'get-urls', paths }),
+        body:    JSON.stringify({ action: 'get-urls', paths, format: urlFormat }),
       })
       if (!res.ok) throw new Error((await res.json()).error)
       const { urls } = await res.json();
@@ -574,7 +616,7 @@ export default function FileExplorer({ path: pathSegments = [] }) {
     } catch (e) {
       toast(e.message, 'error')
     }
-  }, [toast])
+  }, [toast, urlFormat])
 
   // Inline Copy Excel (no modal, uses DEFAULT_GROUP_SIZE)
   const handleInlineCopyExcel = useCallback(async () => {
@@ -594,7 +636,7 @@ export default function FileExplorer({ path: pathSegments = [] }) {
       const urlRes = await fetch('/api/files', {
         method:  'POST',
         headers: { 'Content-Type': 'application/json' },
-        body:    JSON.stringify({ action: 'get-urls', paths: sortedPaths }),
+        body:    JSON.stringify({ action: 'get-urls', paths: sortedPaths, format: urlFormat }),
       })
       if (!urlRes.ok) throw new Error((await urlRes.json()).error)
       const { urls } = await urlRes.json()
@@ -618,7 +660,7 @@ export default function FileExplorer({ path: pathSegments = [] }) {
     } finally {
       setCopyingExcel(false)
     }
-  }, [rightFiles, selectedItems, selectionOrder, toast])
+  }, [rightFiles, selectedItems, selectionOrder, toast, urlFormat, groupSize])
 
   // Inline Copy Names — respects groupSize
   // Group of 1 → name\turl per row (col A = name, col B = URL, paste straight into Excel)
@@ -641,7 +683,7 @@ export default function FileExplorer({ path: pathSegments = [] }) {
       const res = await fetch('/api/files', {
         method:  'POST',
         headers: { 'Content-Type': 'application/json' },
-        body:    JSON.stringify({ action: 'get-urls', paths }),
+        body:    JSON.stringify({ action: 'get-urls', paths, format: urlFormat }),
       })
       if (!res.ok) throw new Error((await res.json()).error)
       const { urls } = await res.json()
@@ -668,7 +710,7 @@ export default function FileExplorer({ path: pathSegments = [] }) {
     } finally {
       setCopyingNames(false)
     }
-  }, [rightFiles, selectedItems, selectionOrder, groupSize, toast])
+  }, [rightFiles, selectedItems, selectionOrder, groupSize, toast, urlFormat])
 
   // Inline Copy List (no modal)
   const handleInlineCopyList = useCallback(async () => {
@@ -687,7 +729,7 @@ export default function FileExplorer({ path: pathSegments = [] }) {
       const res = await fetch('/api/files', {
         method:  'POST',
         headers: { 'Content-Type': 'application/json' },
-        body:    JSON.stringify({ action: 'get-urls', paths: sortedPaths }),
+        body:    JSON.stringify({ action: 'get-urls', paths: sortedPaths, format: urlFormat }),
       })
       if (!res.ok) throw new Error((await res.json()).error)
       const { urls } = await res.json()
@@ -698,7 +740,7 @@ export default function FileExplorer({ path: pathSegments = [] }) {
     } finally {
       setCopyingList(false)
     }
-  }, [rightFiles, selectedItems, selectionOrder, toast])
+  }, [rightFiles, selectedItems, selectionOrder, toast, urlFormat])
 
   // Search filter only (no type filter, no sort — table columns handle sort)
   const filteredFiles = useMemo(() => {
@@ -846,6 +888,14 @@ export default function FileExplorer({ path: pathSegments = [] }) {
                 refetchRoot={refetchRoot}
                 toast={toast}
               />
+
+              <Link
+                href="/files-expiry"
+                className="flex items-center gap-2 px-3 py-2.5 border-t border-[var(--lt-divider)] text-xs text-[var(--lt-text-subtle)] hover:text-[var(--lt-accent-light)] hover:bg-[var(--lt-accent-muted)] transition-colors shrink-0"
+              >
+                <Clock size={13} />
+                File Expiry Manager
+              </Link>
             </div>
 
             {/* Drag-to-resize handle */}
@@ -882,6 +932,8 @@ export default function FileExplorer({ path: pathSegments = [] }) {
             onToggleMultiSelect={() => setMultiSelectMode(v => !v)}
             onGroupSizeChange={(size) => setGroupSize(size)}
             groupSize={groupSize}
+            urlFormat={urlFormat}
+            onUrlFormatChange={setUrlFormat}
           />
 
           <div className="px-4 pt-3">
@@ -967,6 +1019,7 @@ export default function FileExplorer({ path: pathSegments = [] }) {
                 onContextMenu={openMenu}
                 expiryMap={expiryMap}
                 onEditExpiry={(item) => setExpiryModalItem({ name: item.name, path: item.path })}
+                urlFormat={urlFormat}
                 {...rowCallbacks}
               />
             )}

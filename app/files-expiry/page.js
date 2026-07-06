@@ -1,6 +1,7 @@
 'use client'
+import Link from 'next/link'
 import { useEffect, useState, useCallback } from 'react'
-import { Clock, Plus, Trash2, Pencil, X, Check, Loader2, AlertTriangle } from 'lucide-react'
+import { Clock, Plus, Trash2, Pencil, X, Check, Loader2, AlertTriangle, ArrowLeft } from 'lucide-react'
 
 function daysRemaining(expiryAt) {
   return Math.ceil((new Date(expiryAt) - new Date()) / 86400000)
@@ -128,6 +129,13 @@ export default function FilesExpiryPage() {
       {/* Header */}
       <div className="flex items-center justify-between mb-6">
         <div className="flex items-center gap-3">
+          <Link
+            href="/files"
+            className="w-8 h-8 rounded-[8px] border border-[var(--lt-divider)] flex items-center justify-center text-[var(--lt-text-subtle)] hover:text-[var(--lt-text-primary)] hover:bg-[var(--lt-card-hover)] transition-colors"
+            title="Back to Files"
+          >
+            <ArrowLeft size={15} />
+          </Link>
           <div className="w-8 h-8 rounded-[8px] bg-[var(--lt-accent-muted)] border border-[var(--lt-accent)]/40 flex items-center justify-center">
             <Clock size={16} className="text-[var(--lt-accent-light)]" />
           </div>
