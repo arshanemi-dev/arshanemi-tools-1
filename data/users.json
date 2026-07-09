@@ -1,1 +1,12 @@
-{ "users": [] }
+{
+  "users": [
+    {
+      "id": "usr_6usud2r5",
+      "name": "rgbdfgvesdfdfasdf",
+      "email": "\\sdasuhdfigfg",
+      "role": "admin",
+      "companyId": "co_9d0asqgt",
+      "createdAt": "2026-07-09T06:05:00.158Z"
+    }
+  ]
+}

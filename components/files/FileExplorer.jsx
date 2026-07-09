@@ -14,6 +14,7 @@ import {
 } from 'lucide-react';
 
 import { useFiles }           from '@/hooks/useFiles'
+import { useStorageProvider } from '@/hooks/useStorageProvider'
 import { useAuthGate }        from '@/hooks/useAuthGate'
 import { useSelection }       from '@/hooks/useSelection'
 import { useClipboard }       from '@/hooks/useClipboard'
@@ -28,6 +29,7 @@ import FileGrid            from './FileGrid'
 import FileList            from './FileList'
 import SelectionBar        from './SelectionBar'
 import ContextMenu         from './ContextMenu'
+import StorageProviderBadge from '@/components/layout/StorageProviderBadge'
 import CreateFolderModal   from './CreateFolderModal'
 import RenameModal         from './RenameModal'
 import DeleteConfirmModal  from './DeleteConfirmModal'
@@ -111,12 +113,26 @@ function RightToolbar({
   multiSelectMode, onToggleMultiSelect,
   groupSize, onGroupSizeChange,
   urlFormat, onUrlFormatChange,
+  activeProvider,
 }) {
   const hasSelection    = selectedCount > 1
   const hasAnySelected  = selectedCount > 0
 
   return (
     <div className="flex items-center gap-2 px-4 py-2.5 border-b border-[var(--lt-divider)] bg-[var(--lt-surface)] shrink-0">
+
+      {/* File / selection count */}
+      {fileCount > 0 && (
+        <span className="text-[10px] text-[var(--lt-text-subtle)] shrink-0 whitespace-nowrap">
+          {fileCount} file{fileCount !== 1 ? 's' : ''}
+          {hasSelection && (
+            <span className="text-[var(--lt-accent-light)] ml-1">· {selectedCount} selected</span>
+          )}
+        </span>
+      )}
+
+      {/* Storage provider (Dropbox / Bunny.net) — right next to search */}
+      <StorageProviderBadge />
 
       {/* Search */}
       <div className="relative w-52 shrink-0">
@@ -137,16 +153,6 @@ function RightToolbar({
         )}
       </div>
 
-      {/* File / selection count */}
-      {fileCount > 0 && (
-        <span className="text-[10px] text-[var(--lt-text-subtle)] shrink-0 whitespace-nowrap">
-          {fileCount} file{fileCount !== 1 ? 's' : ''}
-          {hasSelection && (
-            <span className="text-[var(--lt-accent-light)] ml-1">· {selectedCount} selected</span>
-          )}
-        </span>
-      )}
-
       {/* Multi-select mode toggle */}
       <button
         onClick={onToggleMultiSelect}
@@ -164,8 +170,10 @@ function RightToolbar({
 
       <div className="flex-1" />
 
-      {/* URL format: Original / Dropbox */}
-      <UrlFormatToggle format={urlFormat} onChange={onUrlFormatChange} />
+      {/* URL format: Original / Dropbox — Dropbox-only, Bunny.net has a single URL format */}
+      {activeProvider !== 'bunny' && (
+        <UrlFormatToggle format={urlFormat} onChange={onUrlFormatChange} />
+      )}
 
       {/* Group size selector */}
       <div className="flex items-center gap-1 shrink-0">
@@ -357,6 +365,7 @@ export default function FileExplorer({ path: pathSegments = [] }) {
   }, [authed, userRoot, treeRootPath])
 
   const { folders: sidebarRootFolders, loading: sidebarLoading, refetch: refetchSidebar } = useFiles(treeRootPath)
+  const { active: activeProvider } = useStorageProvider()
 
   // Auto-select the first folder once on initial load — guard with a ref so
   // subsequent sidebar refreshes (new folder created, etc.) don't jump back.
@@ -400,6 +409,24 @@ export default function FileExplorer({ path: pathSegments = [] }) {
     refetchSidebar()
     setFetchTick(t => t + 1)
   }, [refetchSidebar])
+
+  // Storage provider switched (Dropbox ⇄ Bunny.net) — pull the latest folders/files for
+  // whichever provider is now active. Folders that don't exist yet are still being
+  // created in the background on the server, so refetch once immediately and once more
+  // shortly after to pick those up without the user having to hit refresh manually.
+  useEffect(() => {
+    let delayedRefetch = null
+    function onProviderChanged() {
+      clearTimeout(delayedRefetch)
+      refetchRoot()
+      delayedRefetch = setTimeout(refetchRoot, 2000)
+    }
+    window.addEventListener('storage:provider-changed', onProviderChanged)
+    return () => {
+      window.removeEventListener('storage:provider-changed', onProviderChanged)
+      clearTimeout(delayedRefetch)
+    }
+  }, [refetchRoot])
 
   const [showNewFolder, setShowNewFolder] = useState(false)
   const [showRename,    setShowRename]    = useState(false)
@@ -934,6 +961,7 @@ export default function FileExplorer({ path: pathSegments = [] }) {
             groupSize={groupSize}
             urlFormat={urlFormat}
             onUrlFormatChange={setUrlFormat}
+            activeProvider={activeProvider}
           />
 
           <div className="px-4 pt-3">

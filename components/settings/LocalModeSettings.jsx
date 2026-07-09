@@ -1,13 +1,14 @@
 'use client'
 
 import { useState, useEffect, useCallback } from 'react'
-import { User, Users, Palette, Crown, WifiOff, CheckCircle, Building2 } from 'lucide-react'
+import { User, Users, Palette, Crown, WifiOff, CheckCircle, Building2, Cloud } from 'lucide-react'
 import { getActiveUserId, getLocalSubscription } from '@/lib/localStore'
 import { getUsers, getCompanies, getActiveUser } from '@/lib/dataStore'
 import ProfilePanel     from './local/ProfilePanel'
 import UsersPanel       from './local/UsersPanel'
 import ThemePanel       from './local/ThemePanel'
 import CompanyPanel     from './local/CompanyPanel'
+import StoragePanel     from './local/StoragePanel'
 import SubscriptionCard from './SubscriptionCard'
 import { cn } from '@/lib/utils'
 
@@ -15,6 +16,7 @@ const TABS = [
   { id: 'profile',      label: 'Profile',      icon: User      },
   { id: 'company',      label: 'Company',      icon: Building2 },
   { id: 'users',        label: 'Users',         icon: Users     },
+  { id: 'storage',      label: 'Storage',      icon: Cloud     },
   { id: 'theme',        label: 'Theme',         icon: Palette   },
   // { id: 'subscription', label: 'Subscription',  icon: Crown     },
 ]
@@ -139,6 +141,13 @@ export default function LocalModeSettings() {
               activeUserId={activeUserId}
               onRefresh={refresh}
             />
+          </Section>
+        )}
+
+        {/* Storage provider */}
+        {tab === 'storage' && (
+          <Section title="Storage Provider">
+            <StoragePanel />
           </Section>
         )}
 

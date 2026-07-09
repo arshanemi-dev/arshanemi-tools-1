@@ -1,1 +1,15 @@
-{ "companies": [] }
+{
+  "companies": [
+    {
+      "id": "co_9d0asqgt",
+      "name": "SHANEMI AR",
+      "slug": "shanemi_ar",
+      "email": "arshanemi@gmail.com",
+      "phone": "756787857",
+      "website": "5754556",
+      "folderId": "shanemi_ar",
+      "isActive": true,
+      "createdAt": "2026-07-09T06:04:47.682Z"
+    }
+  ]
+}

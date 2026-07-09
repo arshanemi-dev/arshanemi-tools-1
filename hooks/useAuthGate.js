@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef } from 'react'
 import { isLoggedIn, getStoredUser } from '@/lib/tokenStore'
-import { getActiveUser } from '@/lib/localStore'
+import { getUsers, getActiveUser } from '@/lib/dataStore'
 import { buildUserRootPath, getUserRootPath, ensureUserFolderFromClient } from '@/lib/userAccess'
 
 const IS_CONNECT = process.env.NEXT_PUBLIC_IS_CONNECT?.toLowerCase() === 'true'
@@ -23,14 +23,15 @@ export function useAuthGate(initialPath = '') {
         if (!isLoggedIn()) { setChecked(true); setAuthed(false); return }
         user = getStoredUser()
       } else {
-        user = getActiveUser()
+        const users = await getUsers()
+        user = getActiveUser(users)
         if (!user)        { setChecked(true); setAuthed(false); return }
       }
 
       // Determine root path
       let root = ''
       if (user?.role === 'admin') {
-        root = buildUserRootPath(user)
+        root = await buildUserRootPath(user)
       } else {
         root = getUserRootPath()
         if (!root) root = await ensureUserFolderFromClient(user)
