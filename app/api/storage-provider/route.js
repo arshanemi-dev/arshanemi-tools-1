@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server'
 import { readFileSync } from 'fs'
 import { join } from 'path'
-import { getActiveProvider, setActiveProvider, getProviderStatus, PROVIDERS } from '@/lib/storageConfig'
+import { getActiveProvider, getProviderStatus, PROVIDERS } from '@/lib/storageConfig'
 import { ensureFolder } from '@/lib/storage'
 
 function readJson(name, fallbackKey) {
@@ -41,10 +41,9 @@ function collectRootPaths(companies, users) {
 }
 
 // Ensures every company root (admin-wise) and every user root (user-wise) exists on
-// whichever provider is currently active. Shallowest paths first so a company root
-// always exists before its user subfolders are created — doing this concurrently
-// races parent vs. child creation.
-async function provisionAll() {
+// the given provider. Shallowest paths first so a company root always exists before
+// its user subfolders are created — doing this concurrently races parent vs. child creation.
+async function provisionAll(provider) {
   const companies = readJson('company.json', 'companies')
   const users = readJson('users.json', 'users')
   const paths = collectRootPaths(companies, users)
@@ -54,7 +53,7 @@ async function provisionAll() {
   let failed = 0
   for (const p of paths) {
     try {
-      await ensureFolder(p)
+      await ensureFolder(p, null, provider)
       created += 1
     } catch {
       failed += 1
@@ -64,38 +63,28 @@ async function provisionAll() {
   return { total: paths.length, created, failed, paths }
 }
 
+// `default` is only a fallback for browsers that haven't picked a provider yet —
+// the active choice otherwise lives client-side (see lib/localStore.js).
 export async function GET() {
-  return NextResponse.json({ active: getActiveProvider(), providers: getProviderStatus() })
+  return NextResponse.json({ default: getActiveProvider(), providers: getProviderStatus() })
 }
 
 export async function POST(request) {
   try {
     const body = await request.json()
     const { action } = body
+    const cookieProvider = request.cookies.get('storage_provider')?.value || null
 
-    if (action === 'switch') {
-      const { provider } = body
-      if (!PROVIDERS.includes(provider)) {
-        return NextResponse.json({ error: `Unknown storage provider "${provider}"` }, { status: 400 })
-      }
+    if (action === 'provision-all') {
+      const provider = PROVIDERS.includes(body.provider) ? body.provider : cookieProvider
       const status = getProviderStatus()
-      if (!status[provider]?.configured) {
+      if (!provider || !status[provider]?.configured) {
         return NextResponse.json(
-          { error: `${status[provider]?.label ?? provider} is not configured yet — add its credentials to .env.local first.` },
+          { error: `${status[provider]?.label ?? provider ?? 'This provider'} is not configured yet — add its credentials to .env.local first.` },
           { status: 400 }
         )
       }
-      setActiveProvider(provider)
-
-      // Fire-and-forget: make sure every company/user folder exists on the newly
-      // active provider without making the caller wait for the whole sweep.
-      provisionAll().catch(err => console.error('Background provisioning after switch failed:', err))
-
-      return NextResponse.json({ active: provider, providers: getProviderStatus() })
-    }
-
-    if (action === 'provision-all') {
-      const result = await provisionAll()
+      const result = await provisionAll(provider)
       return NextResponse.json(result)
     }
 

@@ -3,7 +3,8 @@ import { getThumbnail } from '@/lib/storage'
 
 export async function GET(request) {
   try {
-    const token = request.headers.get('X-Dropbox-Token')
+    const token    = request.headers.get('X-Dropbox-Token')
+    const provider = request.cookies.get('storage_provider')?.value || null
     const { searchParams } = new URL(request.url)
     const path = searchParams.get('path')
 
@@ -11,7 +12,7 @@ export async function GET(request) {
       return NextResponse.json({ error: 'Path parameter is required' }, { status: 400 })
     }
 
-    const fileBuffer = await getThumbnail(path, token)
+    const fileBuffer = await getThumbnail(path, token, provider)
 
     return new Response(fileBuffer, {
       headers: {

@@ -6,12 +6,18 @@ function getToken(request) {
   return request.headers.get('X-Dropbox-Token') || null
 }
 
+// Per-browser storage choice — see lib/localStore.js setStorageProvider().
+function getProvider(request) {
+  return request.cookies.get('storage_provider')?.value || null
+}
+
 export async function GET(request) {
   try {
     const { searchParams } = new URL(request.url)
-    const path  = searchParams.get('path') ?? ''
-    const token = getToken(request)
-    const data  = await listFolder(path, token)
+    const path     = searchParams.get('path') ?? ''
+    const token    = getToken(request)
+    const provider = getProvider(request)
+    const data     = await listFolder(path, token, provider)
     return NextResponse.json(data)
   } catch (err) {
     console.log(err)
@@ -21,20 +27,21 @@ export async function GET(request) {
 
 export async function POST(request) {
   try {
-    const token = getToken(request)
-    const body  = await request.json()
+    const token    = getToken(request)
+    const provider = getProvider(request)
+    const body     = await request.json()
     const { action } = body
 
     if (action === 'create-folder') {
       const { path, name } = body
       const fullPath = path ? `${path}/${name}` : `/${name}`
-      await createFolder(fullPath, token)
+      await createFolder(fullPath, token, provider)
       return NextResponse.json({ ok: true })
     }
 
     if (action === 'ensure-folder') {
       const { path } = body
-      await ensureFolder(path, token)
+      await ensureFolder(path, token, provider)
       return NextResponse.json({ ok: true })
     }
 
@@ -43,7 +50,7 @@ export async function POST(request) {
       await Promise.all(
         paths.map(p => {
           const filename = p.split('/').pop()
-          return copyItem(p, `${destPath}/${filename}`, token)
+          return copyItem(p, `${destPath}/${filename}`, token, provider)
         })
       )
       return NextResponse.json({ ok: true })
@@ -54,7 +61,7 @@ export async function POST(request) {
       await Promise.all(
         paths.map(p => {
           const filename = p.split('/').pop()
-          return moveItem(p, `${destPath}/${filename}`, token)
+          return moveItem(p, `${destPath}/${filename}`, token, provider)
         })
       )
       return NextResponse.json({ ok: true })
@@ -62,7 +69,7 @@ export async function POST(request) {
 
     if (action === 'get-urls') {
       const { paths, format } = body
-      const urls = await Promise.all(paths.map(p => getSharedLink(p, token, format)))
+      const urls = await Promise.all(paths.map(p => getSharedLink(p, token, format, provider)))
       return NextResponse.json({ urls })
     }
 
@@ -74,9 +81,10 @@ export async function POST(request) {
 
 export async function DELETE(request) {
   try {
-    const token = getToken(request)
+    const token    = getToken(request)
+    const provider = getProvider(request)
     const { paths } = await request.json()
-    await deleteItems(paths, token)
+    await deleteItems(paths, token, provider)
     return NextResponse.json({ ok: true })
   } catch (err) {
     return NextResponse.json({ error: err.message }, { status: 500 })
@@ -85,11 +93,12 @@ export async function DELETE(request) {
 
 export async function PATCH(request) {
   try {
-    const token = getToken(request)
+    const token    = getToken(request)
+    const provider = getProvider(request)
     const { path, newName } = await request.json()
     const parent = getParentPath(path)
     const toPath = parent ? `${parent}/${newName}` : `/${newName}`
-    await moveItem(path, toPath, token)
+    await moveItem(path, toPath, token, provider)
     return NextResponse.json({ ok: true })
   } catch (err) {
     return NextResponse.json({ error: err.message }, { status: 500 })

@@ -1,8 +1,9 @@
 'use client'
 
-import { useState, useEffect, useCallback } from 'react'
+import { useState } from 'react'
 import { Cloud, Zap, CheckCircle2, AlertTriangle, RefreshCw, FolderCheck } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import { useStorageProvider } from '@/hooks/useStorageProvider'
 import Button from '@/components/ui/Button'
 import Badge from '@/components/ui/Badge'
 import Modal from '@/components/ui/Modal'
@@ -30,48 +31,29 @@ async function callApi(body) {
 }
 
 export default function StoragePanel() {
-  const [active, setActive]         = useState(null)
-  const [providers, setProviders]   = useState({})
-  const [loading, setLoading]       = useState(true)
+  const { active, providers, loading, switchProvider } = useStorageProvider()
   const [switching, setSwitching]   = useState(null)
   const [confirmTarget, setConfirmTarget] = useState(null)
   const [provisioning, setProvisioning]   = useState(false)
   const [message, setMessage]       = useState(null) // { type: 'success'|'error', text }
 
-  const refresh = useCallback(async () => {
-    const res  = await fetch('/api/storage-provider')
-    const data = await res.json()
-    setActive(data.active)
-    setProviders(data.providers)
-    setLoading(false)
-  }, [])
-
-  useEffect(() => { refresh() }, [refresh])
-
-  async function handleSwitch(provider) {
+  function handleSwitch(provider) {
     setSwitching(provider)
     setMessage(null)
-    try {
-      await callApi({ action: 'switch', provider })
-      await refresh()
-      window.dispatchEvent(new CustomEvent('storage:provider-changed', { detail: { provider } }))
-      setMessage({
-        type: 'success',
-        text: `Switched active storage to ${PROVIDER_META[provider].label}. Company & user folders are being created in the background.`,
-      })
-    } catch (e) {
-      setMessage({ type: 'error', text: e.message })
-    } finally {
-      setSwitching(null)
-      setConfirmTarget(null)
-    }
+    switchProvider(provider)
+    setMessage({
+      type: 'success',
+      text: `Switched active storage to ${PROVIDER_META[provider].label} — for this browser only. New folders and uploads you make will go there from now on.`,
+    })
+    setSwitching(null)
+    setConfirmTarget(null)
   }
 
   async function handleProvision() {
     setProvisioning(true)
     setMessage(null)
     try {
-      const data = await callApi({ action: 'provision-all' })
+      const data = await callApi({ action: 'provision-all', provider: active })
       setMessage({
         type: 'success',
         text: `Provisioned ${data.created}/${data.total} company & user folders on ${PROVIDER_META[active]?.label ?? 'the active provider'}${data.failed ? ` — ${data.failed} failed` : ''}.`,
@@ -95,8 +77,8 @@ export default function StoragePanel() {
   return (
     <div className="flex flex-col gap-4">
       <p className="text-xs text-[var(--lt-text-subtle)] leading-relaxed">
-        Choose which service stores every company and user's files. Switching is instant and global — new
-        company and user folders are created automatically the moment they're needed on whichever provider is active.
+        Choose which service stores files for <span className="font-semibold text-[var(--lt-text-primary)]">this browser</span>.
+        The choice is saved locally, not shared with other users — folders are created automatically on whichever provider is active here.
       </p>
 
       {message && (
@@ -195,10 +177,10 @@ export default function StoragePanel() {
       <Modal open={!!confirmTarget} onClose={() => setConfirmTarget(null)} title="Switch active storage?" size="sm">
         <div className="flex flex-col gap-4">
           <p className="text-sm text-[var(--lt-text-muted)] leading-relaxed">
-            This changes the storage backend for <span className="font-semibold text-[var(--lt-text-primary)]">everyone</span> using
-            this tool. New uploads and folders will go to{' '}
+            This changes the storage backend for <span className="font-semibold text-[var(--lt-text-primary)]">this browser only</span>.
+            New uploads and folders you make will go to{' '}
             <span className="font-semibold text-[var(--lt-text-primary)]">{PROVIDER_META[confirmTarget]?.label}</span> from now on.
-            Existing files on the other provider are not moved automatically.
+            Existing files on the other provider are not moved automatically, and other people using this tool keep their own choice.
           </p>
           <div className="flex gap-2">
             <Button

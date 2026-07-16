@@ -1,9 +1,10 @@
 'use client'
 
-import { useState, useEffect, useRef, useCallback } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import Link from 'next/link'
 import { Cloud, Zap, ChevronDown, Check } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import { useStorageProvider } from '@/hooks/useStorageProvider'
 
 const PROVIDER_META = {
   dropbox: { label: 'Dropbox', icon: Cloud, color: '#0061fe' },
@@ -12,23 +13,8 @@ const PROVIDER_META = {
 
 export default function StorageProviderBadge() {
   const [open, setOpen]           = useState(false)
-  const [active, setActive]       = useState(null)
-  const [providers, setProviders] = useState({})
-  const [busy, setBusy]           = useState(false)
+  const { active, providers, switchProvider } = useStorageProvider()
   const ref = useRef(null)
-
-  const refresh = useCallback(async () => {
-    try {
-      const res  = await fetch('/api/storage-provider')
-      const data = await res.json()
-      setActive(data.active)
-      setProviders(data.providers)
-    } catch {
-      // Storage provider status is a nice-to-have — fail silently
-    }
-  }, [])
-
-  useEffect(() => { refresh() }, [refresh])
 
   useEffect(() => {
     function onClickOutside(e) {
@@ -38,33 +24,16 @@ export default function StorageProviderBadge() {
     return () => document.removeEventListener('mousedown', onClickOutside)
   }, [])
 
-  async function handleSwitch(provider) {
-    if (provider === active || busy) { setOpen(false); return }
+  function handleSwitch(provider) {
+    if (provider === active) { setOpen(false); return }
     if (!providers[provider]?.configured) return
     const ok = window.confirm(
-      `Switch active storage to ${PROVIDER_META[provider].label}? This affects everyone using this tool — new folders and uploads will go there from now on.`
+      `Switch active storage to ${PROVIDER_META[provider].label}? This is saved to this browser only — new folders and uploads you make will go there from now on.`
     )
     if (!ok) return
 
-    setBusy(true)
-    try {
-      const res  = await fetch('/api/storage-provider', {
-        method:  'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body:    JSON.stringify({ action: 'switch', provider }),
-      })
-      const data = await res.json()
-      if (res.ok) {
-        setActive(data.active)
-        setProviders(data.providers)
-        // Company/user folders are being provisioned in the background on the server —
-        // let any open file view know so it can pull fresh data for the new provider.
-        window.dispatchEvent(new CustomEvent('storage:provider-changed', { detail: { provider: data.active } }))
-      }
-    } finally {
-      setBusy(false)
-      setOpen(false)
-    }
+    switchProvider(provider)
+    setOpen(false)
   }
 
   if (!active) return null
@@ -97,7 +66,7 @@ export default function StorageProviderBadge() {
             return (
               <button
                 key={key}
-                disabled={busy || (!status.configured && !isActive)}
+                disabled={!status.configured && !isActive}
                 onClick={() => handleSwitch(key)}
                 className={cn(
                   'w-full flex items-center gap-2 px-2 py-2 rounded-[7px] text-xs transition-colors text-left',

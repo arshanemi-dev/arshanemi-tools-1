@@ -6,6 +6,7 @@ export const maxDuration = 300  // 5 min — large video uploads need time
 export async function POST(request) {
   try {
     const token    = request.headers.get('X-Dropbox-Token') || null
+    const provider = request.cookies.get('storage_provider')?.value || null
     const formData = await request.formData()
     const folderPath = formData.get('folderPath') ?? ''
     const files    = formData.getAll('files')
@@ -14,7 +15,7 @@ export async function POST(request) {
       files.map(async (file) => {
         const arrayBuffer = await file.arrayBuffer()
         const buffer = Buffer.from(arrayBuffer)
-        return uploadFile(folderPath, file.name, buffer, token)
+        return uploadFile(folderPath, file.name, buffer, token, provider)
       })
     )
 
