@@ -38,6 +38,8 @@ import CopyUrlsModal       from './CopyUrlsModal'
 import DropZone            from './DropZone'
 import Spinner             from '@/components/ui/Spinner'
 import ExpiryModal         from '@/components/ui/ExpiryModal'
+import BillingGateModal    from '@/components/billing/BillingGateModal'
+import { runBillingGate }  from '@/lib/toolBilling'
 
 const GROUP_SIZES = [1, 2, 3, 4]
 
@@ -350,6 +352,12 @@ export default function FileExplorer({ path: pathSegments = [] }) {
   const [groupSize,    setGroupSize]    = useState(1)
   const [urlFormat,    setUrlFormat]    = useState('original') // 'original' | 'dropbox' — default always Original
 
+  // Cross-app billing gate (Fix-Fee + coin cost) — see lib/toolBilling.js
+  const [billingGate, setBillingGate] = useState(null) // { reason, data, retry } | null
+  const openBillingModal = useCallback((reason, data, retry) => {
+    setBillingGate({ reason, data, retry })
+  }, [])
+
   // T2: recursive file-listing state
   const [rightFiles,   setRightFiles]   = useState([])
   const [rightLoading, setRightLoading] = useState(false)
@@ -625,12 +633,20 @@ export default function FileExplorer({ path: pathSegments = [] }) {
     }
   }, [clearSelection, refetchRoot, toast])
 
-  const handleCopyUrls = useCallback(async (items) => {
+  // Not wrapped in useCallback — each retries by calling itself by name
+  // after the billing gate modal resolves (see lib/toolBilling.js's waterfall
+  // doc comment), and neither appears in another hook's dependency array, so
+  // a plain function avoids the self-reference-before-declaration lint error
+  // useCallback's memoization would otherwise trip.
+  async function handleCopyUrls(items) {
     if (!items.length) return
+    const featureApiIdentifier = items.length === 1 ? 'link-copy' : 'link-batch-copy'
+    const gate = await runBillingGate({ toolSlug: 'link-generator', featureApiIdentifier })
+    if (gate.status === 'blocked') { openBillingModal(gate.reason, gate.data, () => handleCopyUrls(items)); return }
     try {
       const paths = items.filter(i => i.tag === 'file').map(i => i.path)
       if (!paths.length) { toast('Select files to copy URLs', 'info'); return }
-      
+
       const res = await fetch('/api/files', {
         method:  'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -643,12 +659,15 @@ export default function FileExplorer({ path: pathSegments = [] }) {
     } catch (e) {
       toast(e.message, 'error')
     }
-  }, [toast, urlFormat])
+  }
 
   // Inline Copy Excel (no modal, uses DEFAULT_GROUP_SIZE)
-  const handleInlineCopyExcel = useCallback(async () => {
+  async function handleInlineCopyExcel() {
     const paths = rightFiles.filter(f => selectedItems.has(f.path)).map(f => f.path)
     if (!paths.length) { toast('Select files to copy URLs', 'info'); return }
+
+    const gate = await runBillingGate({ toolSlug: 'link-generator', featureApiIdentifier: 'link-export-excel' })
+    if (gate.status === 'blocked') { openBillingModal(gate.reason, gate.data, () => handleInlineCopyExcel()); return }
 
     // Sort by selection order
     const sortedPaths = selectionOrder?.size
@@ -687,7 +706,7 @@ export default function FileExplorer({ path: pathSegments = [] }) {
     } finally {
       setCopyingExcel(false)
     }
-  }, [rightFiles, selectedItems, selectionOrder, toast, urlFormat, groupSize])
+  }
 
   // Inline Copy Names — respects groupSize
   // Group of 1 → name\turl per row (col A = name, col B = URL, paste straight into Excel)
@@ -1102,6 +1121,12 @@ export default function FileExplorer({ path: pathSegments = [] }) {
         onClose={() => { setShowCopyUrls(false); setCopyUrlItems([]) }}
         items={copyUrlItems}
         selectionOrder={selectionOrder}
+        toast={toast}
+      />
+      <BillingGateModal
+        gate={billingGate}
+        onClose={() => setBillingGate(null)}
+        onRetry={() => { const retry = billingGate?.retry; setBillingGate(null); retry?.() }}
         toast={toast}
       />
 
