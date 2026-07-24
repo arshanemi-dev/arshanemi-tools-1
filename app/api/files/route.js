@@ -1,6 +1,5 @@
 import { NextResponse } from 'next/server'
-import { listFolder, createFolder, ensureFolder, copyItem, moveItem, deleteItems, getSharedLink } from '@/lib/storage'
-import { getParentPath } from '@/lib/utils'
+import { listFolder, ensureFolder, deleteItems, getSharedLink } from '@/lib/storage'
 
 function getToken(request) {
   return request.headers.get('X-Dropbox-Token') || null
@@ -32,38 +31,9 @@ export async function POST(request) {
     const body     = await request.json()
     const { action } = body
 
-    if (action === 'create-folder') {
-      const { path, name } = body
-      const fullPath = path ? `${path}/${name}` : `/${name}`
-      await createFolder(fullPath, token, provider)
-      return NextResponse.json({ ok: true })
-    }
-
     if (action === 'ensure-folder') {
       const { path } = body
       await ensureFolder(path, token, provider)
-      return NextResponse.json({ ok: true })
-    }
-
-    if (action === 'copy') {
-      const { paths, destPath } = body
-      await Promise.all(
-        paths.map(p => {
-          const filename = p.split('/').pop()
-          return copyItem(p, `${destPath}/${filename}`, token, provider)
-        })
-      )
-      return NextResponse.json({ ok: true })
-    }
-
-    if (action === 'move') {
-      const { paths, destPath } = body
-      await Promise.all(
-        paths.map(p => {
-          const filename = p.split('/').pop()
-          return moveItem(p, `${destPath}/${filename}`, token, provider)
-        })
-      )
       return NextResponse.json({ ok: true })
     }
 
@@ -85,20 +55,6 @@ export async function DELETE(request) {
     const provider = getProvider(request)
     const { paths } = await request.json()
     await deleteItems(paths, token, provider)
-    return NextResponse.json({ ok: true })
-  } catch (err) {
-    return NextResponse.json({ error: err.message }, { status: 500 })
-  }
-}
-
-export async function PATCH(request) {
-  try {
-    const token    = getToken(request)
-    const provider = getProvider(request)
-    const { path, newName } = await request.json()
-    const parent = getParentPath(path)
-    const toPath = parent ? `${parent}/${newName}` : `/${newName}`
-    await moveItem(path, toPath, token, provider)
     return NextResponse.json({ ok: true })
   } catch (err) {
     return NextResponse.json({ error: err.message }, { status: 500 })

@@ -1,5 +1,7 @@
 'use client'
 
+import '@/lib/tokenHandoff' // side effect only — must run before the isLoggedIn() check below
+
 import { useState, useEffect, useRef } from 'react'
 import { isLoggedIn, getStoredUser } from '@/lib/tokenStore'
 import { getUsers, getActiveUser } from '@/lib/dataStore'

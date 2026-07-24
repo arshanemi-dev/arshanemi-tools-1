@@ -1,16 +1,7 @@
 import { NextResponse } from 'next/server'
-import { readFileSync } from 'fs'
-import { join } from 'path'
+import { readBlobJson } from '@/lib/blobStore'
 import { getActiveProvider, getProviderStatus, PROVIDERS } from '@/lib/storageConfig'
 import { ensureFolder } from '@/lib/storage'
-
-function readJson(name, fallbackKey) {
-  try {
-    return JSON.parse(readFileSync(join(process.cwd(), 'data', name), 'utf8'))[fallbackKey] ?? []
-  } catch {
-    return []
-  }
-}
 
 // Mirrors lib/userAccess.js's buildUserFolderName — kept local since that module is
 // client-oriented (localStorage helpers) and this route only needs the pure slug logic.
@@ -44,8 +35,8 @@ function collectRootPaths(companies, users) {
 // the given provider. Shallowest paths first so a company root always exists before
 // its user subfolders are created — doing this concurrently races parent vs. child creation.
 async function provisionAll(provider) {
-  const companies = readJson('company.json', 'companies')
-  const users = readJson('users.json', 'users')
+  const { companies = [] } = await readBlobJson('company', { companies: [] })
+  const { users = [] } = await readBlobJson('users', { users: [] })
   const paths = collectRootPaths(companies, users)
     .sort((a, b) => a.split('/').length - b.split('/').length)
 

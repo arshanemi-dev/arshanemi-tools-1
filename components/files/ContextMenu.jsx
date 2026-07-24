@@ -1,9 +1,7 @@
 'use client'
 
 import { useEffect, useRef } from 'react'
-import {
-  FolderOpen, Pencil, Copy, Scissors, Clipboard, Link2, Trash2
-} from 'lucide-react'
+import { FolderOpen, Trash2 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { motion } from 'framer-motion'
 
@@ -30,14 +28,8 @@ function MenuItem({ icon: Icon, label, onClick, variant = 'default', disabled })
 
 export default function ContextMenu({
   menu,
-  clipboard,
   onClose,
   onOpen,
-  onRename,
-  onCopy,
-  onCut,
-  onPaste,
-  onCopyUrl,
   onDelete,
 }) {
   const ref  = useRef(null)
@@ -59,7 +51,6 @@ export default function ContextMenu({
   const y = Math.min(menu.y, window.innerHeight - 280)
 
   const isFolder = item?.tag === 'folder'
-  const canPaste = clipboard?.paths?.length > 0
 
   return (
     <motion.div
@@ -72,18 +63,11 @@ export default function ContextMenu({
       onClick={e => e.stopPropagation()}
     >
       {isFolder && (
-        <MenuItem icon={FolderOpen} label="Open" onClick={() => { onOpen(item); onClose() }} />
+        <>
+          <MenuItem icon={FolderOpen} label="Open" onClick={() => { onOpen(item); onClose() }} />
+          <Divider />
+        </>
       )}
-      <MenuItem icon={Pencil}    label="Rename"   onClick={() => { onRename(item); onClose() }} />
-      <Divider />
-      {/* <MenuItem icon={Copy}      label="Copy"     onClick={() => { onCopy([item.path]); onClose() }} />
-      <MenuItem icon={Scissors}  label="Cut"      onClick={() => { onCut([item.path]);  onClose() }} /> */}
-      {/* <MenuItem icon={Clipboard} label="Paste"    onClick={() => { onPaste(); onClose() }} disabled={!canPaste} /> */}
-      <Divider />
-      {!isFolder && (
-        <MenuItem icon={Link2} label="Copy URL" onClick={() => { onCopyUrl(item); onClose() }} />
-      )}
-      <Divider />
       <MenuItem icon={Trash2} label="Delete" onClick={() => { onDelete([item.path]); onClose() }} variant="danger" />
     </motion.div>
   )

@@ -238,7 +238,7 @@ export default function ThemePanel() {
 
       <p className="flex items-start gap-2 text-[10px] text-[var(--lt-text-subtle)] bg-[var(--lt-bg-base)] border border-[var(--lt-divider)] rounded-[8px] px-3 py-2.5 leading-relaxed">
         <Sparkles size={11} className="text-[var(--lt-text-subtle)] mt-0.5 shrink-0" />
-        Theme is saved to localStorage and applied instantly. Font scale affects all{' '}
+        Theme applies instantly and syncs to this tool's data store. Font scale affects all{' '}
         <code className="text-[var(--lt-text-subtle)]">rem</code>-based sizes. Font families are loaded from Google Fonts.
       </p>
     </div>

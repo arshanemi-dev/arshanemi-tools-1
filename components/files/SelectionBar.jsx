@@ -1,29 +1,15 @@
 'use client'
 
-import { Copy, Scissors, Clipboard, Pencil, Trash2, Link2 } from 'lucide-react'
+import { Trash2 } from 'lucide-react'
 import Button from '@/components/ui/Button'
 import { motion, AnimatePresence } from 'framer-motion'
 
 export default function SelectionBar({
   selectedItems,
-  clipboard,
-  currentPath,
-  allItems,
-  onCopy,
-  onCut,
-  onPaste,
-  onRename,
   onDelete,
-  onCopyUrls,
   onClearSelection,
 }) {
-  const count      = selectedItems.size
-  const selectedArr = [...selectedItems]
-  const allFiles   = allItems.filter(i => i.tag === 'file')
-  const hasFiles   = selectedArr.some(p => allFiles.some(f => f.path === p))
-  const canRename  = count === 1
-  const canPaste   = clipboard && clipboard.paths.length > 0
-  const canUrls    = count > 0 && hasFiles
+  const count = selectedItems.size
 
   if (count === 0) return null
 
@@ -46,36 +32,8 @@ export default function SelectionBar({
 
         <div className="w-px h-5 bg-[var(--lt-accent)]/30" />
 
-        {/* <Button size="sm" variant="ghost" icon={<Copy size={13} />} onClick={() => onCopy(selectedArr)}>
-          Copy
-        </Button>
-        <Button size="sm" variant="ghost" icon={<Scissors size={13} />} onClick={() => onCut(selectedArr)}>
-          Cut
-        </Button>
-        <Button size="sm" variant="ghost" icon={<Clipboard size={13} />} onClick={onPaste} disabled={!canPaste}>
-          Paste
-        </Button> */}
-
-        <div className="w-px h-5 bg-[var(--lt-accent)]/30" />
-
-        <Button size="sm" variant="ghost" icon={<Pencil size={13} />} onClick={onRename} disabled={!canRename}>
-          Rename
-        </Button>
         <Button size="sm" variant="danger" icon={<Trash2 size={13} />} onClick={onDelete}>
           Delete
-        </Button>
-
-        <div className="w-px h-5 bg-[var(--lt-accent)]/30 ml-auto" />
-
-        <Button
-          size="sm"
-          variant="primary"
-          icon={<Link2 size={13} />}
-          onClick={onCopyUrls}
-          disabled={!canUrls}
-          title={!canUrls ? 'Select files (not folders) to copy URLs' : ''}
-        >
-          Copy URLs
         </Button>
       </motion.div>
     </AnimatePresence>

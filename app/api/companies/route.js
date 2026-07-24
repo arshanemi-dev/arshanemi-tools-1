@@ -1,15 +1,11 @@
 import { NextResponse } from 'next/server'
-import { readFileSync, writeFileSync } from 'fs'
-import { join } from 'path'
-
-const PATH = join(process.cwd(), 'data', 'company.json')
+import { readBlobJson, writeBlobJson } from '@/lib/blobStore'
 
 function readStore() {
-  try { return JSON.parse(readFileSync(PATH, 'utf8')) }
-  catch { return { companies: [] } }
+  return readBlobJson('company', { companies: [] })
 }
 function writeStore(data) {
-  writeFileSync(PATH, JSON.stringify(data, null, 2))
+  return writeBlobJson('company', data)
 }
 
 function genId(prefix = 'co') {
@@ -27,13 +23,13 @@ function toSlug(name) {
 }
 
 export async function GET() {
-  return NextResponse.json(readStore())
+  return NextResponse.json(await readStore())
 }
 
 export async function POST(request) {
   const body = await request.json()
   const { id, name, email, phone, website, action } = body
-  const store = readStore()
+  const store = await readStore()
 
   if (action === 'update' && id) {
     const idx = store.companies.findIndex(c => c.id === id)
@@ -65,7 +61,7 @@ export async function POST(request) {
       website: website !== undefined ? (website?.trim() || null) : current.website,
       folderId,
     }
-    writeStore(store)
+    await writeStore(store)
     return NextResponse.json(store)
   }
 
@@ -92,25 +88,22 @@ export async function POST(request) {
     createdAt: new Date().toISOString(),
   }
   store.companies.push(company)
-  writeStore(store)
+  await writeStore(store)
   return NextResponse.json(store)
 }
 
 export async function DELETE(request) {
   const { id } = await request.json()
-  const store = readStore()
+  const store = await readStore()
   store.companies = store.companies.filter(c => c.id !== id)
-  writeStore(store)
+  await writeStore(store)
 
-  // Unlink users from this company
-  try {
-    const usersPath = join(process.cwd(), 'data', 'users.json')
-    const usersStore = JSON.parse(readFileSync(usersPath, 'utf8'))
-    usersStore.users = usersStore.users.map(u =>
-      u.companyId === id ? { ...u, companyId: null } : u
-    )
-    writeFileSync(usersPath, JSON.stringify(usersStore, null, 2))
-  } catch { /* users.json may not exist yet */ }
+  // Also update users.json to unlink this company
+  const usersStore = await readBlobJson('users', { users: [] })
+  usersStore.users = usersStore.users.map(u =>
+    u.companyId === id ? { ...u, companyId: null } : u
+  )
+  await writeBlobJson('users', usersStore)
 
   return NextResponse.json(store)
 }

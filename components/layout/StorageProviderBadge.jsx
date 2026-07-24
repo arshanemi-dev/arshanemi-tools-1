@@ -1,10 +1,11 @@
 'use client'
 
 import { useState, useEffect, useRef } from 'react'
-import Link from 'next/link'
 import { Cloud, Zap, ChevronDown, Check } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { useStorageProvider } from '@/hooks/useStorageProvider'
+import Modal from '@/components/ui/Modal'
+import Button from '@/components/ui/Button'
 
 const PROVIDER_META = {
   dropbox: { label: 'Dropbox', icon: Cloud, color: '#0061fe' },
@@ -12,7 +13,8 @@ const PROVIDER_META = {
 }
 
 export default function StorageProviderBadge() {
-  const [open, setOpen]           = useState(false)
+  const [open, setOpen]                   = useState(false)
+  const [confirmTarget, setConfirmTarget] = useState(null)
   const { active, providers, switchProvider } = useStorageProvider()
   const ref = useRef(null)
 
@@ -27,13 +29,16 @@ export default function StorageProviderBadge() {
   function handleSwitch(provider) {
     if (provider === active) { setOpen(false); return }
     if (!providers[provider]?.configured) return
-    const ok = window.confirm(
-      `Switch active storage to ${PROVIDER_META[provider].label}? This is saved to this browser only — new folders and uploads you make will go there from now on.`
-    )
-    if (!ok) return
-
-    switchProvider(provider)
     setOpen(false)
+    setConfirmTarget(provider)
+  }
+
+  function confirmSwitch() {
+    switchProvider(confirmTarget)
+    // Hard reload so every already-loaded file list, upload target, and
+    // provider-dependent view picks up the new backend instead of mixing
+    // stale data from the old one with fresh calls to the new one.
+    window.location.reload()
   }
 
   if (!active) return null
@@ -85,16 +90,22 @@ export default function StorageProviderBadge() {
               </button>
             )
           })}
-
-          <Link
-            href="/settings"
-            onClick={() => setOpen(false)}
-            className="block mt-1 px-2 py-1.5 text-[10px] text-[var(--lt-text-subtle)] hover:text-[var(--lt-accent-light)] border-t border-[var(--lt-divider)] transition-colors"
-          >
-            Manage in Settings →
-          </Link>
         </div>
       )}
+
+      <Modal open={!!confirmTarget} onClose={() => setConfirmTarget(null)} title="Switch active storage?" size="sm">
+        <div className="flex flex-col gap-4">
+          <p className="text-sm text-[var(--lt-text-muted)] leading-relaxed">
+            Switch active storage to{' '}
+            <span className="font-semibold text-[var(--lt-text-primary)]">{PROVIDER_META[confirmTarget]?.label}</span>?
+            This is saved to this browser only — new folders and uploads you make will go there from now on.
+          </p>
+          <div className="flex gap-2">
+            <Button variant="secondary" className="flex-1" onClick={() => setConfirmTarget(null)}>Cancel</Button>
+            <Button variant="primary" className="flex-1" onClick={confirmSwitch}>OK</Button>
+          </div>
+        </div>
+      </Modal>
     </div>
   )
 }

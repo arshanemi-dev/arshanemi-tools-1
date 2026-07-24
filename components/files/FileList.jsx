@@ -1,12 +1,13 @@
 'use client'
-// FileList — last updated 2026-06-25
-// T3: "Copy Name" button on every row (copies filename without extension)
-// T4: Inline file rename — no modal, extension preserved, auto-save on switch
+// FileList — last updated 2026-07-23
+// Browse-only rows: thumbnail, name, Download, Set Expiry, Delete.
+// Copy-link and inline rename removed — not part of the catalog's billed
+// feature set (see data/tools.js's link-generator entry).
 
-import { useState, useMemo, useRef, useEffect, useCallback } from 'react'
+import { useState, useMemo } from 'react'
 import {
   ChevronUp, ChevronDown, ChevronsUpDown,
-  Link2, Share2, Download, Pencil, Trash2, Loader2, Check, Minus,
+  Download, Trash2, Loader2, Check, Minus,
   Folder, Clock,
   FileText, FileImage, FileVideo, FileAudio,
   File, Archive, Code, FileSpreadsheet, FileType2,
@@ -88,52 +89,10 @@ function ExpiryBadge({ expiryAt, onEdit }) {
 }
 
 /* ─── Per-row action buttons (always visible) ───────────────────── */
-function RowActions({ item, onDelete, onTriggerInlineRename, expiryRecord, onEditExpiry, urlFormat }) {
-  const [copyState,    setCopyState]    = useState('idle')  // idle | loading | done
-  const [dropboxState, setDropboxState] = useState('idle')  // idle | loading | done
-  const [dlState,      setDlState]      = useState('idle')
+function RowActions({ item, onDelete, expiryRecord, onEditExpiry }) {
+  const [dlState, setDlState] = useState('idle')
 
   const isFolder = item.tag === 'folder'
-
-  async function handleCopyLink(e) {
-    e.stopPropagation()
-    if (isFolder) return
-    setCopyState('loading')
-    try {
-      const res = await fetch('/api/files', {
-        method:  'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body:    JSON.stringify({ action: 'get-urls', paths: [item.path], format: urlFormat }),
-      })
-      if (!res.ok) throw new Error()
-      const { urls } = await res.json()
-      await navigator.clipboard.writeText(urls[0])
-      setCopyState('done')
-      setTimeout(() => setCopyState('idle'), 1800)
-    } catch {
-      setCopyState('idle')
-    }
-  }
-
-  async function handleCopyDropbox(e) {
-    e.stopPropagation()
-    if (isFolder) return
-    setDropboxState('loading')
-    try {
-      const res = await fetch('/api/files', {
-        method:  'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body:    JSON.stringify({ action: 'get-urls', paths: [item.path], format: 'dropbox' }),
-      })
-      if (!res.ok) throw new Error()
-      const { urls } = await res.json()
-      await navigator.clipboard.writeText(urls[0])
-      setDropboxState('done')
-      setTimeout(() => setDropboxState('idle'), 1800)
-    } catch {
-      setDropboxState('idle')
-    }
-  }
 
   async function handleDownload(e) {
     e.stopPropagation()
@@ -158,44 +117,6 @@ function RowActions({ item, onDelete, onTriggerInlineRename, expiryRecord, onEdi
 
   return (
     <div className="flex items-center gap-0.5 shrink-0">
-
-      {/* Copy link */}
-      {!isFolder && (
-        <button
-          onClick={handleCopyLink}
-          disabled={copyState === 'loading'}
-          title="Copy link"
-          className={cn(
-            'w-6 h-6 flex items-center justify-center rounded-[5px] transition-colors',
-            copyState === 'done'
-              ? 'text-[#10b981] bg-[#064e3b]'
-              : 'text-[var(--lt-text-subtle)] hover:text-[var(--lt-accent-light)] hover:bg-[var(--lt-accent-muted)]'
-          )}
-        >
-          {copyState === 'loading' ? <Loader2 size={11} className="animate-spin" />
-            : copyState === 'done'  ? <Check   size={11} />
-            : <Link2 size={11} />}
-        </button>
-      )}
-
-      {/* Copy Dropbox link */}
-      {!isFolder && (
-        <button
-          onClick={handleCopyDropbox}
-          disabled={dropboxState === 'loading'}
-          title="Copy Dropbox link"
-          className={cn(
-            'w-6 h-6 flex items-center justify-center rounded-[5px] transition-colors',
-            dropboxState === 'done'
-              ? 'text-[#10b981] bg-[#064e3b]'
-              : 'text-[var(--lt-text-subtle)] hover:text-[var(--lt-accent-light)] hover:bg-[var(--lt-accent-muted)]'
-          )}
-        >
-          {dropboxState === 'loading' ? <Loader2 size={11} className="animate-spin" />
-            : dropboxState === 'done'  ? <Check   size={11} />
-            : <Share2 size={11} />}
-        </button>
-      )}
 
       {/* Download */}
       {!isFolder && (
@@ -226,15 +147,6 @@ function RowActions({ item, onDelete, onTriggerInlineRename, expiryRecord, onEdi
           <Clock size={11} />
         </button>
       )}
-
-      {/* T4: Rename — triggers inline rename, not modal */}
-      <button
-        onClick={e => { e.stopPropagation(); onTriggerInlineRename(item) }}
-        title="Rename"
-        className="w-6 h-6 flex items-center justify-center rounded-[5px] text-[var(--lt-text-subtle)] hover:text-[var(--lt-text-primary)] hover:bg-[var(--lt-divider)] transition-colors"
-      >
-        <Pencil size={11} />
-      </button>
 
       {/* Delete */}
       <button
@@ -277,7 +189,6 @@ export default function FileList({
   files   = [],
   selectedItems,
   selectionOrder,
-  cutPaths,
   sortBy,
   onRowClick,
   onToggleItem,
@@ -286,11 +197,8 @@ export default function FileList({
   onNavigate,
   onContextMenu,
   onDelete,
-  onCopyUrl,
-  onRenamed,   // T4: called after a successful inline rename (use to refetch)
   expiryMap,   // Map<fileName, expiryRecord> — optional
   onEditExpiry, // (item) => void — open expiry modal for a file
-  urlFormat,   // 'original' | 'dropbox' — format used by the row "Copy link" button
 }) {
   // ── Column sort ───────────────────────────────────────────────────
   const [colSort, setColSort] = useState({ col: sortBy || 'name', dir: 'asc' })
@@ -304,9 +212,6 @@ export default function FileList({
 
   // ── Per-column search ─────────────────────────────────────────────
   const [colSearch, setColSearch] = useState({ name: '', type: '', modified: '', size: '' })
-  function updateSearch(col, val) {
-    setColSearch(prev => ({ ...prev, [col]: val }))
-  }
 
   function applyColFilters(items) {
     return items.filter(item => {
@@ -350,59 +255,6 @@ export default function FileList({
   const sortedFiles   = useMemo(() => sortItems(applyColFilters(files)),   [files,   colSort, colSearch])
   const allItems      = [...sortedFolders, ...sortedFiles]
 
-  // ── T4: Inline rename state ───────────────────────────────────────
-  const [inlineRenameItem, setInlineRenameItem] = useState(null)
-  const [inlineRenameName, setInlineRenameName] = useState('')
-  const [inlineRenameBusy, setInlineRenameBusy] = useState(false)
-
-  const doInlineRename = useCallback(async (item, name) => {
-    const trimmed = name.trim()
-    if (!trimmed) { setInlineRenameItem(null); setInlineRenameName(''); return }
-
-    const ext     = item.tag === 'file' ? (item.name.match(/\.[^/.]+$/) ?? [''])[0] : ''
-    const newName = trimmed + ext
-
-    if (newName === item.name) { setInlineRenameItem(null); setInlineRenameName(''); return }
-
-    setInlineRenameBusy(true)
-    try {
-      const res = await fetch('/api/files', {
-        method:  'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body:    JSON.stringify({ path: item.path, newName }),
-      })
-      if (!res.ok) throw new Error((await res.json()).error)
-      setInlineRenameItem(null)
-      setInlineRenameName('')
-      onRenamed?.()
-    } catch {
-      // keep open so user can fix; don't clear
-    } finally {
-      setInlineRenameBusy(false)
-    }
-  }, [onRenamed])
-
-  // T4: Trigger inline rename — auto-save existing open rename first
-  const handleTriggerInlineRename = useCallback(async (item) => {
-    if (inlineRenameItem && inlineRenameItem.path !== item.path) {
-      await doInlineRename(inlineRenameItem, inlineRenameName)
-    }
-    const initialName = item.tag === 'file'
-      ? item.name.replace(/\.[^/.]+$/, '')
-      : item.name
-    setInlineRenameItem(item)
-    setInlineRenameName(initialName)
-  }, [inlineRenameItem, inlineRenameName, doInlineRename])
-
-  const handleSaveInlineRename = useCallback(() => {
-    if (inlineRenameItem) doInlineRename(inlineRenameItem, inlineRenameName)
-  }, [inlineRenameItem, inlineRenameName, doInlineRename])
-
-  const handleCancelInlineRename = useCallback(() => {
-    setInlineRenameItem(null)
-    setInlineRenameName('')
-  }, [])
-
   if (allItems.length === 0 && !Object.values(colSearch).some(Boolean)) {
     return (
       <div className="flex flex-col items-center justify-center py-24 text-center">
@@ -442,15 +294,14 @@ export default function FileList({
             </th>
             <th className="w-10 px-3 py-2" />
             <SortTh col="name" label="Name" colSort={colSort} onSort={handleSort} className="min-w-[180px]" />
-            <th className="w-14 px-3 py-2 text-left text-[11px] font-semibold text-[var(--lt-text-subtle)]">Link</th>
-            {hasRowCallbacks && <th className="w-36 px-3 py-2" />}
+            {hasRowCallbacks && <th className="w-28 px-3 py-2" />}
           </tr>
         </thead>
 
         <tbody>
           {allItems.length === 0 ? (
             <tr>
-              <td colSpan={hasRowCallbacks ? 5 : 4} className="py-12 text-center text-xs text-[var(--lt-text-subtle)]">
+              <td colSpan={hasRowCallbacks ? 4 : 3} className="py-12 text-center text-xs text-[var(--lt-text-subtle)]">
                 No results match your filters
               </td>
             </tr>
@@ -460,26 +311,15 @@ export default function FileList({
                 key={item.id ?? item.path}
                 item={item}
                 isSelected={selectedItems.has(item.path)}
-                isCut={cutPaths?.has(item.path)}
                 selectionIndex={selectionOrder?.get(item.path)}
                 onRowClick={onRowClick}
                 onToggleItem={onToggleItem}
                 onNavigate={onNavigate}
                 onContextMenu={onContextMenu}
                 onDelete={onDelete}
-                onCopyUrl={onCopyUrl}
                 hasRowCallbacks={hasRowCallbacks}
-                urlFormat={urlFormat}
                 expiryRecord={expiryMap?.get(item.name)}
                 onEditExpiry={onEditExpiry ? () => onEditExpiry(item) : undefined}
-                // T4: inline rename
-                isRenaming={inlineRenameItem?.path === item.path}
-                inlineRenameName={inlineRenameName}
-                inlineRenameBusy={inlineRenameBusy}
-                onTriggerInlineRename={handleTriggerInlineRename}
-                onInlineRenameNameChange={setInlineRenameName}
-                onSaveInlineRename={handleSaveInlineRename}
-                onCancelInlineRename={handleCancelInlineRename}
               />
             ))
           )}
@@ -492,38 +332,22 @@ export default function FileList({
 /* ─── Single list row ─────────────────────────────────────────────── */
 function ListRow({
   item,
-  isSelected, isCut, selectionIndex,
+  isSelected, selectionIndex,
   onRowClick, onToggleItem, onNavigate, onContextMenu,
-  onDelete, onCopyUrl,
+  onDelete,
   hasRowCallbacks,
-  urlFormat,
   expiryRecord, onEditExpiry,
-  // T4: inline rename props
-  isRenaming, inlineRenameName, inlineRenameBusy,
-  onTriggerInlineRename, onInlineRenameNameChange,
-  onSaveInlineRename, onCancelInlineRename,
 }) {
   const isFolder = item.tag === 'folder'
-  const ext      = isFolder ? '' : (item.name.match(/\.[^/.]+$/) ?? [''])[0]
-
-  const inputRef = useRef(null)
-  useEffect(() => {
-    if (isRenaming && inputRef.current) {
-      inputRef.current.focus()
-      inputRef.current.select()
-    }
-  }, [isRenaming])
 
   return (
     <tr
-      onClick={e => isRenaming ? e.stopPropagation() : onRowClick?.(item, e)}
-      onDoubleClick={() => !isRenaming && isFolder && onNavigate(item.path)}
+      onClick={e => onRowClick?.(item, e)}
+      onDoubleClick={() => isFolder && onNavigate(item.path)}
       onContextMenu={e => onContextMenu(e, item)}
       className={cn(
         'group/row border-b border-[var(--lt-divider)] last:border-0 cursor-pointer select-none transition-colors',
         isSelected ? 'bg-[var(--lt-accent-muted)]' : 'hover:bg-[var(--lt-surface)]',
-        isCut && 'opacity-50',
-        isRenaming && 'bg-[var(--lt-accent-muted)]',
       )}
     >
       {/* Checkbox */}
@@ -560,92 +384,37 @@ function ListRow({
         </div>
       </td>
 
-      {/* Name — T4: inline input when renaming */}
-      <td
-        className="px-3 py-2 min-w-[180px] w-full"
-        onClick={e => isRenaming && e.stopPropagation()}
-      >
-        {isRenaming ? (
-          <form
-            onSubmit={e => { e.preventDefault(); onSaveInlineRename() }}
-            className="flex items-center gap-1.5"
-          >
-            <input
-              ref={inputRef}
-              value={inlineRenameName}
-              onChange={e => onInlineRenameNameChange(e.target.value)}
-              onKeyDown={e => {
-                if (e.key === 'Escape') { e.preventDefault(); onCancelInlineRename() }
-                if (e.key === 'Enter')  { e.preventDefault(); onSaveInlineRename() }
-              }}
-              className="flex-1 min-w-0 px-2 py-0.5 text-xs bg-[var(--lt-bg-base)] border border-[var(--lt-accent)] rounded-[5px] text-[var(--lt-text-primary)] focus:outline-none"
-            />
-            {/* Show extension as read-only hint for files */}
-            {!isFolder && ext && (
-              <span className="text-[10px] text-[var(--lt-text-subtle)] shrink-0 font-mono">{ext}</span>
-            )}
-            <button
-              type="submit"
-              disabled={inlineRenameBusy || !inlineRenameName.trim()}
-              className="w-5 h-5 flex items-center justify-center rounded-[4px] bg-[var(--lt-accent)] text-white disabled:opacity-40 shrink-0 hover:bg-[var(--lt-accent-hover)] transition-colors"
-            >
-              {inlineRenameBusy ? <Loader2 size={9} className="animate-spin" /> : <Check size={9} />}
-            </button>
-            <button
-              type="button"
-              onClick={e => { e.stopPropagation(); onCancelInlineRename() }}
-              className="w-5 h-5 flex items-center justify-center rounded-[4px] text-[var(--lt-text-subtle)] hover:text-[var(--lt-text-primary)] hover:bg-[var(--lt-divider)] shrink-0 transition-colors"
-            >
-              <X size={9} />
-            </button>
-          </form>
-        ) : (
-          <div className="flex items-center gap-2 min-w-0">
-            <span className="text-xs text-[var(--lt-text-primary)] truncate max-w-[260px]" title={item.name}>
-              {item.name.length > 40 ? item.name.slice(0, 38) + '…' : item.name}
+      {/* Name */}
+      <td className="px-3 py-2 min-w-[180px] w-full">
+        <div className="flex items-center gap-2 min-w-0">
+          <span className="text-xs text-[var(--lt-text-primary)] truncate max-w-[260px]" title={item.name}>
+            {item.name.length > 40 ? item.name.slice(0, 38) + '…' : item.name}
+          </span>
+          {item.folderSource && (
+            <span className="text-[9px] px-1 py-0.5 rounded bg-[var(--lt-accent-muted)] text-[var(--lt-accent-light)] shrink-0">
+              {item.folderSource}
             </span>
-            {item.folderSource && (
-              <span className="text-[9px] px-1 py-0.5 rounded bg-[var(--lt-accent-muted)] text-[var(--lt-accent-light)] shrink-0">
-                {item.folderSource}
-              </span>
-            )}
-            {expiryRecord && onEditExpiry && (
-              <ExpiryBadge
-                expiryAt={expiryRecord.expiryAt ?? expiryRecord.expiry_at}
-                onEdit={onEditExpiry}
-              />
-            )}
-          </div>
-        )}
+          )}
+          {expiryRecord && onEditExpiry && (
+            <ExpiryBadge
+              expiryAt={expiryRecord.expiryAt ?? expiryRecord.expiry_at}
+              onEdit={onEditExpiry}
+            />
+          )}
+        </div>
       </td>
 
-      {/* Link column — empty, reserved for extension */}
-      <td className="px-3 py-2 w-14" />
-
-      {/* Row actions — T3 Copy Name + T4 inline rename trigger */}
+      {/* Row actions — Download / Expiry / Delete */}
       {hasRowCallbacks && (
-        <td className="px-2 py-2 w-36" onClick={e => e.stopPropagation()}>
+        <td className="px-2 py-2 w-28" onClick={e => e.stopPropagation()}>
           <RowActions
             item={item}
             onDelete={onDelete}
-            onCopyUrl={onCopyUrl}
-            onTriggerInlineRename={onTriggerInlineRename}
             expiryRecord={expiryRecord}
             onEditExpiry={onEditExpiry}
-            urlFormat={urlFormat}
           />
         </td>
       )}
     </tr>
-  )
-}
-
-// ─── X icon (needed for inline form) ───────────────────────────────
-function X({ size, className }) {
-  return (
-    <svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}>
-      <line x1="18" y1="6" x2="6" y2="18"/>
-      <line x1="6" y1="6" x2="18" y2="18"/>
-    </svg>
   )
 }

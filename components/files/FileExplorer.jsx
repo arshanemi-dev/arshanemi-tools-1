@@ -1,15 +1,15 @@
 'use client'
-// FileExplorer — last updated 2026-06-25
+// FileExplorer — last updated 2026-07-23
 // T1: right panel shows ONLY files (no sub-folders rendered)
 // T2: recursive file listing — every file in selected folder tree appears
 // T3: per-row checkbox in FileList
-// Toolbar: single row — search · count · Copy Excel · Copy List · Delete · Upload
+// Toolbar: single row — search · count · Edit Expiry · Delete · Upload
 
 import Link from 'next/link'
 import { useState, useEffect, useCallback, useMemo, useRef } from 'react'
 import {
   Search, X, RefreshCw, PanelLeftClose, PanelLeftOpen,
-  Upload, Trash2, Table2, List as ListIcon, Loader2, Layers2, Copy, Clock,
+  Upload, Trash2, Loader2, Clock,
   FolderOpen, FileX,
 } from 'lucide-react';
 
@@ -17,7 +17,6 @@ import { useFiles }           from '@/hooks/useFiles'
 import { useStorageProvider } from '@/hooks/useStorageProvider'
 import { useAuthGate }        from '@/hooks/useAuthGate'
 import { useSelection }       from '@/hooks/useSelection'
-import { useClipboard }       from '@/hooks/useClipboard'
 import { useContextMenu }     from '@/hooks/useContextMenu'
 import { useUpload }          from '@/hooks/useUpload'
 import { cn }                 from '@/lib/utils'
@@ -30,54 +29,15 @@ import FileList            from './FileList'
 import SelectionBar        from './SelectionBar'
 import ContextMenu         from './ContextMenu'
 import StorageProviderBadge from '@/components/layout/StorageProviderBadge'
-import CreateFolderModal   from './CreateFolderModal'
-import RenameModal         from './RenameModal'
 import DeleteConfirmModal  from './DeleteConfirmModal'
 import UploadModal         from './UploadModal'
-import CopyUrlsModal       from './CopyUrlsModal'
 import DropZone            from './DropZone'
 import Spinner             from '@/components/ui/Spinner'
 import ExpiryModal         from '@/components/ui/ExpiryModal'
 import BillingGateModal    from '@/components/billing/BillingGateModal'
-import { runBillingGate }  from '@/lib/toolBilling'
-
-const GROUP_SIZES = [1, 2, 3, 4]
-
-/* ── Original / Dropbox URL format toggle switch ─────────────────── */
-function UrlFormatToggle({ format, onChange }) {
-  const isDropbox = format === 'dropbox'
-  return (
-    <div className="flex items-center gap-1.5 shrink-0">
-      <span className={cn(
-        'text-[10px] font-medium transition-colors',
-        !isDropbox ? 'text-[var(--lt-accent-light)]' : 'text-[var(--lt-text-subtle)]'
-      )}>
-        Original
-      </span>
-      <button
-        onClick={() => onChange(isDropbox ? 'original' : 'dropbox')}
-        title={`URL format: ${isDropbox ? 'Dropbox' : 'Original'} (click to switch)`}
-        className={cn(
-          'relative w-9 h-5 rounded-full transition-colors shrink-0',
-          isDropbox ? 'bg-[var(--lt-accent)]' : 'bg-[var(--lt-divider-light)]'
-        )}
-      >
-        <span
-          className={cn(
-            'absolute top-0.5 left-0.5 w-4 h-4 rounded-full bg-white shadow-sm transition-transform',
-            isDropbox && 'translate-x-4'
-          )}
-        />
-      </button>
-      <span className={cn(
-        'text-[10px] font-medium transition-colors',
-        isDropbox ? 'text-[var(--lt-accent-light)]' : 'text-[var(--lt-text-subtle)]'
-      )}>
-        Dropbox
-      </span>
-    </div>
-  )
-}
+import { runBillingGate, reportStorageUsage } from '@/lib/toolBilling'
+import { TOOL_SLUG, FEATURES } from '@/lib/toolFeatures'
+import { sumFolderBytesRecursive } from '@/lib/folderSize'
 
 /* ── T2: BFS recursive file fetcher ──────────────────────────────── */
 async function fetchAllFilesRecursive(rootPaths) {
@@ -109,19 +69,12 @@ function RightToolbar({
   selectedCount, fileCount,
   onDeleteSelected, deleting,
   onEditExpiry,
-  onCopyExcel,  copyingExcel,
-  onCopyNames,  copyingNames,
-  onCopyList,   copyingList,
-  multiSelectMode, onToggleMultiSelect,
-  groupSize, onGroupSizeChange,
-  urlFormat, onUrlFormatChange,
-  activeProvider,
 }) {
   const hasSelection    = selectedCount > 1
   const hasAnySelected  = selectedCount > 0
 
   return (
-    <div className="flex items-center gap-2 px-4 py-2.5 border-b border-[var(--lt-divider)] bg-[var(--lt-surface)] shrink-0">
+    <div className="flex flex-wrap items-center gap-2 px-4 py-2.5 border-b border-[var(--lt-divider)] bg-[var(--lt-surface)] shrink-0">
 
       {/* File / selection count */}
       {fileCount > 0 && (
@@ -155,102 +108,7 @@ function RightToolbar({
         )}
       </div>
 
-      {/* Multi-select mode toggle */}
-      <button
-        onClick={onToggleMultiSelect}
-        title={multiSelectMode ? 'Multi-select ON — click to disable (or press Shift)' : 'Enable multi-select mode (Shift)'}
-        className={cn(
-          'flex items-center gap-1.5 px-2.5 h-8 text-[11px] rounded-[8px] font-medium border transition-all shrink-0',
-          multiSelectMode
-            ? 'bg-[var(--lt-accent-muted)] border-[var(--lt-accent)]/60 text-[var(--lt-accent-light)] hidden'
-            : 'bg-transparent border-[#222] text-[var(--lt-text-subtle)] hover:border-[#333] hover:text-[var(--lt-text-subtle)] hidden'
-        )}
-      >
-        <Layers2 size={12} />
-        {multiSelectMode ? 'Multi ON' : 'Multi'}
-      </button>
-
       <div className="flex-1" />
-
-      {/* URL format: Original / Dropbox — Dropbox-only, Bunny.net has a single URL format */}
-      {activeProvider !== 'bunny' && (
-        <UrlFormatToggle format={urlFormat} onChange={onUrlFormatChange} />
-      )}
-
-      {/* Group size selector */}
-      <div className="flex items-center gap-1 shrink-0">
-        <span className="text-[10px] text-[var(--lt-text-subtle)] mr-0.5">Group</span>
-        {GROUP_SIZES.map(n => (
-          <button
-            key={n}
-             disabled={ !hasSelection}
-            onClick={() => onGroupSizeChange(n)}
-            title={`Group by ${n}`}
-            className={cn(
-              'w-6 h-6 rounded-[5px] text-[11px] font-semibold transition-all',
-              groupSize === n&& hasSelection
-                ? 'bg-[var(--lt-accent)] text-white'
-                : 'bg-[var(--lt-surface)] border border-[var(--lt-divider)] text-[var(--lt-text-subtle)] hover:border-[var(--lt-accent)] hover:text-[var(--lt-text-primary)]'+(hasSelection ? '' : 'bg-[var(--lt-surface)] border border-[var(--lt-divider)] text-[var(--lt-divider-light)] cursor-not-allowed')
-            )}
-          >
-            {n}
-          </button>
-        ))}
-      </div>
-
-      {/* Copy Excel URLs */}
-      <button
-        onClick={onCopyExcel}
-        disabled={copyingExcel || !hasSelection}
-        title={!hasSelection ? 'Select files first' : `Copy Excel URLs (group of ${groupSize})`}
-        className={cn(
-          'flex items-center gap-1.5 px-2.5 h-8 text-xs rounded-[8px] font-medium border transition-all shrink-0',
-          copyingExcel
-            ? 'bg-[#064e3b] border-[#10b981]/40 text-[#10b981]'
-            : hasSelection
-            ? 'bg-[var(--lt-surface)] border-[var(--lt-divider-light)] text-[var(--lt-text-muted)] hover:border-[var(--lt-accent)] hover:text-[var(--lt-text-primary)]'
-            : 'bg-transparent border-[var(--lt-divider)] text-[var(--lt-divider-light)] cursor-not-allowed'
-        )}
-      >
-        {copyingExcel ? <Loader2 size={12} className="animate-spin" /> : <Table2 size={12} />}
-        {copyingExcel ? 'Copying…' : 'Copy'}
-      </button>
-
-      {/* Copy Names — name (no ext) + URL per selected file, TSV for Excel */}
-      <button
-        onClick={onCopyNames}
-        disabled={copyingNames || !hasSelection}
-        title={!hasSelection ? 'Select files first' : 'Copy names + URLs (name without extension)'}
-        className={cn(
-          'flex items-center gap-1.5 px-2.5 h-8 text-xs rounded-[8px] font-medium border transition-all shrink-0',
-          copyingNames
-            ? 'bg-[#064e3b] border-[#10b981]/40 text-[#10b981]'
-            : hasSelection
-            ? 'bg-[var(--lt-surface)] border-[var(--lt-divider-light)] text-[var(--lt-text-muted)] hover:border-[#10b981]/60 hover:text-[#10b981]'
-            : 'bg-transparent border-[var(--lt-divider)] text-[var(--lt-divider-light)] cursor-not-allowed'
-        )}
-      >
-        {copyingNames ? <Loader2 size={12} className="animate-spin" /> : <Copy size={12} />}
-        {copyingNames ? 'Copying…' : 'Copy Names'}
-      </button>
-
-      {/* Copy List URLs */}
-      <button
-        onClick={onCopyList}
-        disabled={copyingList || !hasSelection}
-        title={!hasSelection ? 'Select files first' : 'Copy URL list'}
-        className={cn(
-          'flex items-center gap-1.5 px-2.5 h-8 text-xs rounded-[8px] font-medium border transition-all shrink-0 hidden',
-          copyingList
-            ? 'bg-[#064e3b] border-[#10b981]/40 text-[#10b981]'
-            : hasSelection
-            ? 'bg-[var(--lt-surface)] border-[var(--lt-divider-light)] text-[var(--lt-text-muted)] hover:border-[var(--lt-accent)] hover:text-[var(--lt-text-primary)]'
-            : 'bg-transparent border-[var(--lt-divider)] text-[var(--lt-divider-light)] cursor-not-allowed'
-        )}
-      >
-        {copyingList ? <Loader2 size={12} className="animate-spin" /> : <ListIcon size={12} />}
-        {copyingList ? 'Copying…' : 'Copy List'}
-      </button>
 
       {/* Edit Expiry — always visible, enabled only when 2+ selected */}
       <button
@@ -345,13 +203,6 @@ export default function FileExplorer({ path: pathSegments = [] }) {
   const [checkedFolders,   setCheckedFolders]   = useState(new Set())
   const [activeFolderPath, setActiveFolderPath] = useState(null)
 
-  // Inline copy state
-  const [copyingExcel, setCopyingExcel] = useState(false)
-  const [copyingNames, setCopyingNames] = useState(false)
-  const [copyingList,  setCopyingList]  = useState(false)
-  const [groupSize,    setGroupSize]    = useState(1)
-  const [urlFormat,    setUrlFormat]    = useState('original') // 'original' | 'dropbox' — default always Original
-
   // Cross-app billing gate (Fix-Fee + coin cost) — see lib/toolBilling.js
   const [billingGate, setBillingGate] = useState(null) // { reason, data, retry } | null
   const openBillingModal = useCallback((reason, data, retry) => {
@@ -372,7 +223,7 @@ export default function FileExplorer({ path: pathSegments = [] }) {
     if (authed && treeRootPath === null) setTreeRootPath(userRoot || '')
   }, [authed, userRoot, treeRootPath])
 
-  const { folders: sidebarRootFolders, loading: sidebarLoading, refetch: refetchSidebar } = useFiles(treeRootPath)
+  const { folders: sidebarRootFolders, loading: sidebarLoading, refetch: refetchSidebar } = useFiles(treeRootPath, { onBillingBlocked: openBillingModal })
   const { active: activeProvider } = useStorageProvider()
 
   // Auto-select the first folder once on initial load — guard with a ref so
@@ -406,10 +257,20 @@ export default function FileExplorer({ path: pathSegments = [] }) {
     }
     let cancelled = false
     setRightLoading(true)
-    fetchAllFilesRecursive(foldersToLoad)
-      .then(files => { if (!cancelled) setRightFiles(files) })
-      .catch(e    => { if (!cancelled) toast(e.message, 'error') })
-      .finally(() => { if (!cancelled) setRightLoading(false) })
+    // One gate call covers the whole recursive walk below (which can fire
+    // many individual /api/files requests) — not one gate call per request.
+    runBillingGate({ toolSlug: TOOL_SLUG, featureApiIdentifier: FEATURES.BROWSE }).then((gate) => {
+      if (cancelled) return
+      if (gate.status === 'blocked') {
+        setRightLoading(false)
+        openBillingModal(gate.reason, gate.data, () => setFetchTick((t) => t + 1))
+        return
+      }
+      fetchAllFilesRecursive(foldersToLoad)
+        .then(files => { if (!cancelled) setRightFiles(files) })
+        .catch(e    => { if (!cancelled) toast(e.message, 'error') })
+        .finally(() => { if (!cancelled) setRightLoading(false) })
+    })
     return () => { cancelled = true }
   }, [authed, checkedFolders, activeFolderPath, fetchTick]) // eslint-disable-line react-hooks/exhaustive-deps
 
@@ -436,15 +297,10 @@ export default function FileExplorer({ path: pathSegments = [] }) {
     }
   }, [refetchRoot])
 
-  const [showNewFolder, setShowNewFolder] = useState(false)
-  const [showRename,    setShowRename]    = useState(false)
-  const [renameItem,    setRenameItem]    = useState(null)
   const [showDelete,    setShowDelete]    = useState(false)
   const [deletePaths,   setDeletePaths]   = useState([])
   const [deleting,      setDeleting]      = useState(false)
   const [showUpload,    setShowUpload]    = useState(false)
-  const [showCopyUrls,  setShowCopyUrls]  = useState(false)
-  const [copyUrlItems,  setCopyUrlItems]  = useState([])
 
   // T1: only files in the right panel
   const allItems = rightFiles
@@ -467,17 +323,13 @@ export default function FileExplorer({ path: pathSegments = [] }) {
 
   const [multiSelectMode, setMultiSelectMode] = useState(false)
   const shiftUsedRef = useRef(false)
-  const { clipboard, copy, cut, paste, clearClipboard } = useClipboard({
-    currentPath: activeFolderPath ?? currentPath,
-    clearSelection, refetch: refetchRoot, toast,
-  })
   const { menu: ctxMenu, openMenu, closeMenu } = useContextMenu()
   const { uploads, uploading, uploadFiles, clearUploads } = useUpload({
     currentPath: activeFolderPath ?? currentPath,
     refetch: refetchRoot, toast,
+    provider: activeProvider,
+    onBillingBlocked: openBillingModal,
   })
-
-  const cutPaths = clipboard?.op === 'cut' ? new Set(clipboard.paths) : new Set()
 
   // ── File expiry records ───────────────────────────────────────────
   const [expiryRecords,   setExpiryRecords]   = useState([])
@@ -566,8 +418,7 @@ export default function FileExplorer({ path: pathSegments = [] }) {
     setCurrentPath(path)
     setActiveFolderPath(path)
     clearSelection()
-    clearClipboard()
-  }, [userRoot, clearSelection, clearClipboard])
+  }, [userRoot, clearSelection])
 
   const handleFolderOpen = useCallback((path) => {
     setActiveFolderPath(path)
@@ -612,6 +463,19 @@ export default function FileExplorer({ path: pathSegments = [] }) {
   const handleDelete = useCallback(async (paths) => {
     setDeleting(true)
     try {
+      // Freed bytes must be computed BEFORE the delete call (the paths won't
+      // list-able afterward). Files already loaded in rightFiles resolve
+      // instantly; anything not found there (folders, or paths outside the
+      // currently rendered folder) falls back to a recursive walk — see
+      // lib/folderSize.js.
+      const freedBytesPerPath = await Promise.all(
+        paths.map((p) => {
+          const known = rightFiles.find((f) => f.path === p)
+          return known ? (known.size || 0) : sumFolderBytesRecursive(p)
+        })
+      )
+      const freedBytes = freedBytesPerPath.reduce((sum, b) => sum + b, 0)
+
       const res = await fetch('/api/files', {
         method:  'DELETE',
         headers: { 'Content-Type': 'application/json' },
@@ -626,167 +490,18 @@ export default function FileExplorer({ path: pathSegments = [] }) {
       })
       refetchRoot()
       toast(`Deleted ${paths.length} item${paths.length > 1 ? 's' : ''}`, 'success')
+
+      if (freedBytes > 0) {
+        reportStorageUsage({ provider: activeProvider, deltaBytes: -freedBytes }).catch((err) =>
+          console.error('Storage usage report failed:', err)
+        )
+      }
     } catch (e) {
       toast(e.message, 'error')
     } finally {
       setDeleting(false)
     }
-  }, [clearSelection, refetchRoot, toast])
-
-  // Not wrapped in useCallback — each retries by calling itself by name
-  // after the billing gate modal resolves (see lib/toolBilling.js's waterfall
-  // doc comment), and neither appears in another hook's dependency array, so
-  // a plain function avoids the self-reference-before-declaration lint error
-  // useCallback's memoization would otherwise trip.
-  async function handleCopyUrls(items) {
-    if (!items.length) return
-    const featureApiIdentifier = items.length === 1 ? 'link-copy' : 'link-batch-copy'
-    const gate = await runBillingGate({ toolSlug: 'link-generator', featureApiIdentifier })
-    if (gate.status === 'blocked') { openBillingModal(gate.reason, gate.data, () => handleCopyUrls(items)); return }
-    try {
-      const paths = items.filter(i => i.tag === 'file').map(i => i.path)
-      if (!paths.length) { toast('Select files to copy URLs', 'info'); return }
-
-      const res = await fetch('/api/files', {
-        method:  'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body:    JSON.stringify({ action: 'get-urls', paths, format: urlFormat }),
-      })
-      if (!res.ok) throw new Error((await res.json()).error)
-      const { urls } = await res.json();
-      setCopyUrlItems(urls.map((url, i) => ({ url, name: paths[i].split('/').pop() })))
-      setShowCopyUrls(true)
-    } catch (e) {
-      toast(e.message, 'error')
-    }
-  }
-
-  // Inline Copy Excel (no modal, uses DEFAULT_GROUP_SIZE)
-  async function handleInlineCopyExcel() {
-    const paths = rightFiles.filter(f => selectedItems.has(f.path)).map(f => f.path)
-    if (!paths.length) { toast('Select files to copy URLs', 'info'); return }
-
-    const gate = await runBillingGate({ toolSlug: 'link-generator', featureApiIdentifier: 'link-export-excel' })
-    if (gate.status === 'blocked') { openBillingModal(gate.reason, gate.data, () => handleInlineCopyExcel()); return }
-
-    // Sort by selection order
-    const sortedPaths = selectionOrder?.size
-      ? [...selectionOrder.entries()]
-          .filter(([p]) => paths.includes(p))
-          .sort(([, a], [, b]) => a - b)
-          .map(([p]) => p)
-      : paths
-
-    setCopyingExcel(true)
-    try {
-      const urlRes = await fetch('/api/files', {
-        method:  'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body:    JSON.stringify({ action: 'get-urls', paths: sortedPaths, format: urlFormat }),
-      })
-      if (!urlRes.ok) throw new Error((await urlRes.json()).error)
-      const { urls } = await urlRes.json()
-
-      const tsvRes = await fetch('/api/urls', {
-        method:  'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body:    JSON.stringify({ items: urls, groupSize: groupSize, sortBy: 'date' }),
-      })
-      if (!tsvRes.ok) throw new Error()
-      const { groups } = await tsvRes.json()
-
-      const header = Array.from({ length: groupSize }).map((_, i) => `Group ${i + 1}`).join('\t')
-      const rows   = groups.map(row =>
-        Array.from({ length: groupSize }).map((_, ci) => row[ci] ?? '').join('\t')
-      )
-      await navigator.clipboard.writeText([...rows].join('\n'))
-      toast('Excel URLs copied!', 'success')
-    } catch (e) {
-      toast(e.message ?? 'Copy failed', 'error')
-    } finally {
-      setCopyingExcel(false)
-    }
-  }
-
-  // Inline Copy Names — respects groupSize
-  // Group of 1 → name\turl per row (col A = name, col B = URL, paste straight into Excel)
-  // Group of N → name1\tname2\t…\nurl1\turl2\t… (name row then url row per group)
-  const handleInlineCopyNames = useCallback(async () => {
-    const selectedFiles = rightFiles.filter(f => selectedItems.has(f.path))
-    if (!selectedFiles.length) { toast('Select files first', 'info'); return }
-
-    const sortedFiles = selectionOrder?.size
-      ? [...selectionOrder.entries()]
-          .filter(([p]) => selectedFiles.some(f => f.path === p))
-          .sort(([, a], [, b]) => a - b)
-          .map(([p]) => selectedFiles.find(f => f.path === p))
-          .filter(Boolean)
-      : selectedFiles
-
-    setCopyingNames(true)
-    try {
-      const paths = sortedFiles.map(f => f.path)
-      const res = await fetch('/api/files', {
-        method:  'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body:    JSON.stringify({ action: 'get-urls', paths, format: urlFormat }),
-      })
-      if (!res.ok) throw new Error((await res.json()).error)
-      const { urls } = await res.json()
-
-      const rows = []
-      for (let i = 0; i < sortedFiles.length; i += groupSize) {
-        const chunkFiles = sortedFiles.slice(i, i + groupSize)
-        const chunkUrls  = urls.slice(i, i + groupSize)
-        const names = chunkFiles.map(f => f.name.replace(/\.[^/.]+$/, ''))
-        if (groupSize === 1) {
-          // name in col A, URL in col B — one file per row
-          rows.push(`${names[0]}\t${chunkUrls[0]}`)
-        } else {
-          // name row then url row for this group
-          rows.push(names.join('\t'))
-          rows.push(chunkUrls.join('\t'))
-          // rows.push('')
-        }
-      }
-      await navigator.clipboard.writeText(rows.join('\n'))
-      toast('Copied with names!', 'success')
-    } catch (e) {
-      toast(e.message ?? 'Copy failed', 'error')
-    } finally {
-      setCopyingNames(false)
-    }
-  }, [rightFiles, selectedItems, selectionOrder, groupSize, toast, urlFormat])
-
-  // Inline Copy List (no modal)
-  const handleInlineCopyList = useCallback(async () => {
-    const paths = rightFiles.filter(f => selectedItems.has(f.path)).map(f => f.path)
-    if (!paths.length) { toast('Select files to copy URLs', 'info'); return }
-
-    const sortedPaths = selectionOrder?.size
-      ? [...selectionOrder.entries()]
-          .filter(([p]) => paths.includes(p))
-          .sort(([, a], [, b]) => a - b)
-          .map(([p]) => p)
-      : paths
-
-    setCopyingList(true)
-    try {
-      const res = await fetch('/api/files', {
-        method:  'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body:    JSON.stringify({ action: 'get-urls', paths: sortedPaths, format: urlFormat }),
-      })
-      if (!res.ok) throw new Error((await res.json()).error)
-      const { urls } = await res.json()
-      await navigator.clipboard.writeText(urls.join('\n'))
-      toast('URL list copied!', 'success')
-    } catch (e) {
-      toast(e.message ?? 'Copy failed', 'error')
-    } finally {
-      setCopyingList(false)
-    }
-  }, [rightFiles, selectedItems, selectionOrder, toast, urlFormat])
+  }, [clearSelection, refetchRoot, toast, rightFiles, activeProvider])
 
   // Search filter only (no type filter, no sort — table columns handle sort)
   const filteredFiles = useMemo(() => {
@@ -802,20 +517,13 @@ export default function FileExplorer({ path: pathSegments = [] }) {
       if (tag === 'INPUT' || tag === 'TEXTAREA') return
       if (e.key === 'Escape')                               clearSelection()
       if (e.ctrlKey && e.key === 'a') { e.preventDefault(); selectAll() }
-      if (e.ctrlKey && e.key === 'c' && selectedItems.size > 0) copy([...selectedItems])
-      if (e.ctrlKey && e.key === 'x' && selectedItems.size > 0) cut([...selectedItems])
-      if (e.ctrlKey && e.key === 'v')                       paste()
       if (e.key === 'Delete' && selectedItems.size > 0) {
         setDeletePaths([...selectedItems]); setShowDelete(true)
-      }
-      if (e.key === 'F2' && selectedItems.size === 1) {
-        const item = allItems.find(i => i.path === [...selectedItems][0])
-        if (item) { setRenameItem(item); setShowRename(true) }
       }
     }
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
-  }, [authed, selectedItems, allItems, clearSelection, selectAll, copy, cut, paste])
+  }, [authed, selectedItems, clearSelection, selectAll])
 
   // Shift key (alone, no click) toggles multi-select mode
   useEffect(() => {
@@ -867,9 +575,7 @@ export default function FileExplorer({ path: pathSegments = [] }) {
   if (!authed) return <AuthGate />
 
   const rowCallbacks = {
-    onDelete:  (paths) => { setDeletePaths(paths); setShowDelete(true) },
-    onCopyUrl: (item)  => handleCopyUrls([item]),
-    onRenamed: refetchRoot,
+    onDelete: (paths) => { setDeletePaths(paths); setShowDelete(true) },
   }
 
   return (
@@ -927,8 +633,6 @@ export default function FileExplorer({ path: pathSegments = [] }) {
                 onFolderOpen={handleFolderOpen}
                 onFolderCheck={handleFolderCheck}
                 onSelectAllFolders={handleSelectAllFolders}
-                onNewRootFolder={() => setShowNewFolder(true)}
-                onRename={(folder) => { setRenameItem(folder); setShowRename(true) }}
                 onDelete={(folder) => { setDeletePaths([folder.path]); setShowDelete(true) }}
                 onDeletePaths={(paths) => { setDeletePaths(paths); setShowDelete(true) }}
                 refetchRoot={refetchRoot}
@@ -968,37 +672,12 @@ export default function FileExplorer({ path: pathSegments = [] }) {
             onDeleteSelected={() => { setDeletePaths([...selectedItems]); setShowDelete(true) }}
             deleting={deleting}
             onEditExpiry={() => setShowBulkExpiry(true)}
-            onCopyExcel={handleInlineCopyExcel}
-            copyingExcel={copyingExcel}
-            onCopyNames={handleInlineCopyNames}
-            copyingNames={copyingNames}
-            onCopyList={handleInlineCopyList}
-            copyingList={copyingList}
-            multiSelectMode={multiSelectMode}
-            onToggleMultiSelect={() => setMultiSelectMode(v => !v)}
-            onGroupSizeChange={(size) => setGroupSize(size)}
-            groupSize={groupSize}
-            urlFormat={urlFormat}
-            onUrlFormatChange={setUrlFormat}
-            activeProvider={activeProvider}
           />
 
           <div className="px-4 pt-3">
             <SelectionBar
               selectedItems={selectedItems}
-              clipboard={clipboard}
-              currentPath={activeFolderPath ?? currentPath}
-              allItems={allItems}
-              onCopy={copy} onCut={cut} onPaste={paste}
-              onRename={() => {
-                const item = allItems.find(i => i.path === [...selectedItems][0])
-                if (item) { setRenameItem(item); setShowRename(true) }
-              }}
               onDelete={() => { setDeletePaths([...selectedItems]); setShowDelete(true) }}
-              onCopyUrls={() => {
-                const sel = allItems.filter(i => i.tag === 'file' && selectedItems.has(i.path))
-                handleCopyUrls(sel)
-              }}
               onClearSelection={clearSelection}
             />
           </div>
@@ -1044,7 +723,6 @@ export default function FileExplorer({ path: pathSegments = [] }) {
                 files={filteredFiles}
                 selectedItems={selectedItems}
                 selectionOrder={selectionOrder}
-                cutPaths={cutPaths}
                 sortBy="name"
                 onSelect={(item, e) => toggleSelect(item.path, e)}
                 onNavigate={navigate}
@@ -1056,7 +734,6 @@ export default function FileExplorer({ path: pathSegments = [] }) {
                 files={filteredFiles}
                 selectedItems={selectedItems}
                 selectionOrder={selectionOrder}
-                cutPaths={cutPaths}
                 sortBy="name"
                 onRowClick={handleRowClick}
                 onToggleItem={handleCheckboxToggle}
@@ -1066,7 +743,6 @@ export default function FileExplorer({ path: pathSegments = [] }) {
                 onContextMenu={openMenu}
                 expiryMap={expiryMap}
                 onEditExpiry={(item) => setExpiryModalItem({ name: item.name, path: item.path })}
-                urlFormat={urlFormat}
                 {...rowCallbacks}
               />
             )}
@@ -1076,28 +752,12 @@ export default function FileExplorer({ path: pathSegments = [] }) {
 
       {/* Context menu */}
       <ContextMenu
-        menu={ctxMenu} clipboard={clipboard} onClose={closeMenu}
+        menu={ctxMenu} onClose={closeMenu}
         onOpen={(item) => navigate(item.path)}
-        onRename={(item) => { setRenameItem(item); setShowRename(true) }}
-        onCopy={copy} onCut={cut} onPaste={paste}
-        onCopyUrl={(item) => handleCopyUrls([item])}
         onDelete={(paths) => { setDeletePaths(paths); setShowDelete(true) }}
       />
 
       {/* Modals */}
-      <CreateFolderModal
-        open={showNewFolder}
-        onClose={() => setShowNewFolder(false)}
-        currentPath={activeFolderPath ?? currentPath}
-        onCreated={() => { setShowNewFolder(false); refetchRoot(); toast('Folder created', 'success') }}
-        toast={toast}
-      />
-      <RenameModal
-        open={showRename}
-        onClose={() => { setShowRename(false); setRenameItem(null) }}
-        item={renameItem}
-        onRenamed={() => { setShowRename(false); setRenameItem(null); refetchRoot(); toast('Renamed successfully', 'success') }}
-      />
       <DeleteConfirmModal
         open={showDelete}
         onClose={() => { setShowDelete(false); setDeletePaths([]) }}
@@ -1115,13 +775,6 @@ export default function FileExplorer({ path: pathSegments = [] }) {
         uploading={uploading}
         existingNames={existingNamesInFolder}
         folderPath={activeFolderPath}
-      />
-      <CopyUrlsModal
-        open={showCopyUrls}
-        onClose={() => { setShowCopyUrls(false); setCopyUrlItems([]) }}
-        items={copyUrlItems}
-        selectionOrder={selectionOrder}
-        toast={toast}
       />
       <BillingGateModal
         gate={billingGate}

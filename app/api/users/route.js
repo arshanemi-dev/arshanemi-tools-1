@@ -1,15 +1,11 @@
 import { NextResponse } from 'next/server'
-import { readFileSync, writeFileSync } from 'fs'
-import { join } from 'path'
-
-const PATH = join(process.cwd(), 'data', 'users.json')
+import { readBlobJson, writeBlobJson } from '@/lib/blobStore'
 
 function readStore() {
-  try { return JSON.parse(readFileSync(PATH, 'utf8')) }
-  catch { return { users: [] } }
+  return readBlobJson('users', { users: [] })
 }
 function writeStore(data) {
-  writeFileSync(PATH, JSON.stringify(data, null, 2))
+  return writeBlobJson('users', data)
 }
 
 function genId(prefix = 'usr') {
@@ -17,13 +13,13 @@ function genId(prefix = 'usr') {
 }
 
 export async function GET() {
-  return NextResponse.json(readStore())
+  return NextResponse.json(await readStore())
 }
 
 export async function POST(request) {
   const body = await request.json()
   const { id, name, email, role = 'user', companyId = null, action } = body
-  const store = readStore()
+  const store = await readStore()
 
   if (action === 'update' && id) {
     store.users = store.users.map(u =>
@@ -31,7 +27,7 @@ export async function POST(request) {
         ? { ...u, name: name.trim(), email: email.trim().toLowerCase(), role, companyId: companyId ?? u.companyId }
         : u
     )
-    writeStore(store)
+    await writeStore(store)
     return NextResponse.json(store)
   }
 
@@ -44,14 +40,14 @@ export async function POST(request) {
     createdAt: new Date().toISOString(),
   }
   store.users.push(user)
-  writeStore(store)
+  await writeStore(store)
   return NextResponse.json(store)
 }
 
 export async function DELETE(request) {
   const { id } = await request.json()
-  const store = readStore()
+  const store = await readStore()
   store.users = store.users.filter(u => u.id !== id)
-  writeStore(store)
+  await writeStore(store)
   return NextResponse.json(store)
 }

@@ -1,12 +1,18 @@
 'use client'
 
 import { useState, useCallback } from 'react'
+import { runBillingGate, reportStorageUsage } from '@/lib/toolBilling'
+import { TOOL_SLUG, FEATURES } from '@/lib/toolFeatures'
 
 const MAX_ATTEMPTS = 3
 
 const delay = (ms) => new Promise(r => setTimeout(r, ms))
 
-export function useUpload({ currentPath, refetch, toast }) {
+// provider: active storage provider ('dropbox'|'bunny'), for storage-delta
+// reporting. onBillingBlocked(reason, data, retry): opens the caller's
+// BillingGateModal — same {reason, data, retry} shape as every other
+// runBillingGate call site in this app.
+export function useUpload({ currentPath, refetch, toast, provider, onBillingBlocked }) {
   const [uploads,   setUploads]   = useState([]) // [{ id, file, progress, status, error, attempt, maxAttempts }]
   const [uploading, setUploading] = useState(false)
 
@@ -62,7 +68,13 @@ export function useUpload({ currentPath, refetch, toast }) {
               setUploads(prev => prev.map(u =>
                 u.id === entry.id ? { ...u, progress: 100, status: 'done' } : u
               ))
-              resolve(true)
+              // uploaded[0].size — same shape /api/upload always returns
+              // (normalizeFile() per provider). Falls back to the local
+              // File object's own size if parsing ever fails, so a storage
+              // report still happens even on an unexpected response shape.
+              let size = entry.file.size
+              try { size = JSON.parse(xhr.responseText)?.uploaded?.[0]?.size ?? size } catch {}
+              resolve({ ok: true, size })
               return
             }
 
@@ -76,7 +88,7 @@ export function useUpload({ currentPath, refetch, toast }) {
               setUploads(prev => prev.map(u =>
                 u.id === entry.id ? { ...u, status: 'error', error: errorMsg } : u
               ))
-              resolve(false)
+              resolve({ ok: false })
             }
           }
 
@@ -87,7 +99,7 @@ export function useUpload({ currentPath, refetch, toast }) {
               setUploads(prev => prev.map(u =>
                 u.id === entry.id ? { ...u, status: 'error', error: 'Network error' } : u
               ))
-              resolve(false)
+              resolve({ ok: false })
             }
           }
 
@@ -100,8 +112,10 @@ export function useUpload({ currentPath, refetch, toast }) {
 
     setUploading(false)
 
-    const doneCount = results.filter(Boolean).length
-    const errCount  = results.length - doneCount
+    const succeeded  = results.filter(r => r.ok)
+    const doneCount  = succeeded.length
+    const errCount   = results.length - doneCount
+    const totalBytes = succeeded.reduce((sum, r) => sum + (r.size || 0), 0)
 
     if (doneCount > 0) {
       toast(
@@ -110,12 +124,29 @@ export function useUpload({ currentPath, refetch, toast }) {
         errCount > 0 ? 'info' : 'success'
       )
       refetch()
+
+      // Billed AFTER upload, on however many files actually succeeded (not
+      // files.length) — nothing here can un-upload a file already committed
+      // to Dropbox/Bunny, so charge-then-block would be wrong; this reports
+      // what happened instead. Storage accounting below happens regardless
+      // of the gate's outcome — the bytes are on disk either way.
+      runBillingGate({ toolSlug: TOOL_SLUG, featureApiIdentifier: FEATURES.IMAGE_UPLOAD, quantity: doneCount })
+        .then((gate) => {
+          if (gate.status === 'blocked') onBillingBlocked?.(gate.reason, gate.data, () => {})
+        })
+        .catch((err) => console.error('Upload billing gate failed:', err))
+
+      if (totalBytes > 0) {
+        reportStorageUsage({ provider, deltaBytes: totalBytes }).catch((err) =>
+          console.error('Storage usage report failed:', err)
+        )
+      }
     } else {
       toast('Upload failed', 'error')
     }
 
     setTimeout(() => setUploads([]), 3000)
-  }, [currentPath, refetch, toast])
+  }, [currentPath, refetch, toast, provider, onBillingBlocked])
 
   const clearUploads = useCallback(() => setUploads([]), [])
 
